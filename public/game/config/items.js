@@ -8,13 +8,13 @@ export const ITEM_TYPES = [
   {
     key: "special1",
     points: 0,
-    timeBonus: 10,
-    weight: 0.022,
+    timeBonus: 20,
+    weight: 0.03,
     size: 126,
     radius: 38,
     color: "#d8f2ff",
     maxActive: 1,
-    spawnCooldown: 9,
+    spawnCooldown: 7.5,
     soundKey: "special",
     sourceCrop: { x: 386, y: 120, width: 590, height: 566 }
   },
