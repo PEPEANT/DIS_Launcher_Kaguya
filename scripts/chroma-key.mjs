@@ -10,6 +10,18 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT_DIR = path.resolve(__dirname, "..");
 const OUTPUT_DIR = path.join(ROOT_DIR, "processed-assets");
+const PUBLIC_OUTPUT_DIR = path.join(ROOT_DIR, "public", "processed-assets");
+
+async function writePng(pixelBuffer, info, outputPath) {
+  await fs.mkdir(path.dirname(outputPath), { recursive: true });
+  await sharp(pixelBuffer, {
+    raw: {
+      width: info.width,
+      height: info.height,
+      channels: info.channels
+    }
+  }).png().toFile(outputPath);
+}
 
 function applyChromaKey(pixelBuffer) {
   let transparentPixels = 0;
@@ -26,6 +38,14 @@ function applyChromaKey(pixelBuffer) {
         ? 0
         : Math.max(0, 255 - distance * CHROMA_KEY_CONFIG.fadeMultiplier);
 
+      if (nextAlpha === 0) {
+        pixelBuffer[index] = 0;
+        pixelBuffer[index + 1] = 0;
+        pixelBuffer[index + 2] = 0;
+      } else if (nextAlpha < 255) {
+        pixelBuffer[index + 1] = Math.min(pixelBuffer[index + 1], strongestOther + 12);
+      }
+
       if (nextAlpha !== pixelBuffer[index + 3]) {
         transparentPixels += 1;
       }
@@ -38,8 +58,9 @@ function applyChromaKey(pixelBuffer) {
 }
 
 async function processAsset(definition) {
-  const inputPath = path.join(ROOT_DIR, definition.file);
+  const inputPath = path.join(ROOT_DIR, definition.sourceFile || definition.file);
   const outputPath = path.join(OUTPUT_DIR, definition.file);
+  const publicOutputPath = path.join(PUBLIC_OUTPUT_DIR, definition.file);
   const { data, info } = await sharp(inputPath)
     .ensureAlpha()
     .raw()
@@ -48,18 +69,13 @@ async function processAsset(definition) {
   const pixelBuffer = Buffer.from(data);
   const transparentPixels = applyChromaKey(pixelBuffer);
 
-  await fs.mkdir(path.dirname(outputPath), { recursive: true });
-  await sharp(pixelBuffer, {
-    raw: {
-      width: info.width,
-      height: info.height,
-      channels: info.channels
-    }
-  }).png().toFile(outputPath);
+  await writePng(pixelBuffer, info, outputPath);
+  await writePng(pixelBuffer, info, publicOutputPath);
 
   return {
     key: definition.key,
     file: definition.file,
+    sourceFile: definition.sourceFile || definition.file,
     transparentPixels
   };
 }

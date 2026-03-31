@@ -1,5 +1,9 @@
 export const elements = {
   body: document.body,
+  introScreen: document.getElementById("introScreen"),
+  introForm: document.getElementById("introForm"),
+  introNicknameInput: document.getElementById("introNicknameInput"),
+  introStartButton: document.getElementById("introStartButton"),
   lobbyScreen: document.getElementById("lobbyScreen"),
   gameScreen: document.getElementById("gameScreen"),
   musicToggleButton: document.getElementById("musicToggleButton"),
@@ -8,6 +12,8 @@ export const elements = {
   overlayEyebrow: document.getElementById("overlayEyebrow"),
   overlayTitle: document.getElementById("overlayTitle"),
   resultNotice: document.getElementById("resultNotice"),
+  lobbyNicknameDisplay: document.getElementById("lobbyNicknameDisplay"),
+  lobbyRankDisplay: document.getElementById("lobbyRankDisplay"),
   startForm: document.getElementById("startForm"),
   startButton: document.getElementById("startButton"),
   nicknameInput: document.getElementById("nicknameInput"),

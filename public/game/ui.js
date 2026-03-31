@@ -1,17 +1,27 @@
 import { elements } from "./dom.js";
 import { t } from "./i18n.js";
 
+export function showIntroScreen() {
+  elements.body.classList.remove("view-game", "view-lobby");
+  elements.body.classList.add("view-intro");
+  elements.introScreen.hidden = false;
+  elements.lobbyScreen.hidden = true;
+  elements.gameScreen.hidden = true;
+}
+
 export function showLobbyScreen() {
-  elements.body.classList.remove("view-game");
+  elements.body.classList.remove("view-game", "view-intro");
   elements.body.classList.add("view-lobby");
+  elements.introScreen.hidden = true;
   elements.lobbyScreen.hidden = false;
   elements.gameScreen.hidden = true;
   elements.lobbyScreen.dataset.mobilePanel = "none";
 }
 
 export function showGameScreen() {
-  elements.body.classList.remove("view-lobby");
+  elements.body.classList.remove("view-lobby", "view-intro");
   elements.body.classList.add("view-game");
+  elements.introScreen.hidden = true;
   elements.lobbyScreen.hidden = true;
   elements.gameScreen.hidden = false;
 }
@@ -51,6 +61,7 @@ export function hideGameResult() {
 
 export function setRankingStatus(text) {
   elements.rankingStatus.textContent = text;
+  elements.rankingStatus.hidden = !text;
 }
 
 export function renderGuideImages(assets) {
@@ -80,6 +91,7 @@ export function setLobbyMobilePanel(panelName = "none") {
 
 export function renderRankingList(rankings) {
   elements.rankingList.innerHTML = "";
+  elements.rankingStatus.hidden = true;
 
   if (!rankings.length) {
     const emptyItem = document.createElement("li");

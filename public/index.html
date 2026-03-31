@@ -10,7 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Noto+Sans+JP:wght@400;500;700;800&family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./styles.css">
   </head>
-  <body class="view-lobby">
+  <body class="view-intro">
     <div class="orientation-gate" id="orientationGate" hidden>
       <div class="orientation-card">
         <p class="orientation-eyebrow" data-i18n="orientation.eyebrow">Landscape</p>
@@ -20,7 +20,42 @@
     </div>
 
     <main class="app-shell">
-      <section class="lobby-screen" id="lobbyScreen" data-mobile-panel="none">
+      <section class="intro-screen" id="introScreen">
+        <div class="intro-card">
+          <div class="lang-switcher">
+            <button class="lang-btn lang-btn--active" data-lang="ko" type="button">KO</button>
+            <button class="lang-btn" data-lang="ja" type="button">JP</button>
+            <button class="lang-btn" data-lang="en" type="button">EN</button>
+          </div>
+
+          <div class="intro-hero">
+            <div class="intro-copy">
+              <p class="lobby-eyebrow" data-i18n="app.brand">Kaguya</p>
+              <h1 class="intro-title" data-i18n="app.name">Snack Rush</h1>
+              <p class="intro-prompt" data-i18n="intro.prompt">Choose your nickname</p>
+              <form id="introForm" class="start-form intro-start-form">
+                <input
+                  id="introNicknameInput"
+                  name="nickname"
+                  type="text"
+                  maxlength="12"
+                  autocomplete="nickname"
+                  placeholder="Nickname"
+                  data-i18n="lobby.nickname"
+                  data-i18n-attr="placeholder"
+                >
+                <button id="introStartButton" type="submit" data-i18n="lobby.enter">Enter</button>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <div class="intro-side-figure" aria-hidden="true">
+          <img class="intro-figure" src="./processed-assets/special/intro_figure.png" alt="">
+        </div>
+      </section>
+
+      <section class="lobby-screen" id="lobbyScreen" data-mobile-panel="none" hidden>
         <div class="lang-switcher">
           <button class="lang-btn lang-btn--active" data-lang="ko" type="button">KO</button>
           <button class="lang-btn" data-lang="ja" type="button">JP</button>
@@ -30,36 +65,23 @@
 
         <section class="lobby-hero">
           <div class="lobby-copy">
-            <p class="lobby-eyebrow" data-i18n="app.brand">Kaguya</p>
-            <h1 data-i18n="app.name">Snack Rush</h1>
-            <p class="lobby-lead" data-i18n="lobby.lead">Catch falling snacks, avoid traps, and chase the highest score.</p>
-
-            <form id="startForm" class="start-form">
-              <input
-                id="nicknameInput"
-                name="nickname"
-                type="text"
-                maxlength="12"
-                autocomplete="nickname"
-                placeholder="Nickname"
-                data-i18n="lobby.nickname"
-                data-i18n-attr="placeholder"
-              >
-              <button id="startButton" type="submit" disabled data-i18n="lobby.start">Start Game</button>
-            </form>
-
             <div class="lobby-mobile-actions">
               <button id="openGuideButton" type="button" class="ghost-button lobby-mobile-button" data-i18n="lobby.mobileGuide">Items</button>
               <button id="openRankingButton" type="button" class="ghost-button lobby-mobile-button" data-i18n="lobby.mobileRanking">Ranking</button>
             </div>
-          </div>
 
-          <div class="lobby-preview">
-            <article class="preview-card preview-card--round3">
-              <span class="preview-badge" data-i18n="preview.round3.badge">Round 3</span>
-              <strong data-i18n="preview.round3.title">Ranking Match</strong>
-              <p data-i18n="preview.round3.desc">Whoever catches the most takes first place.</p>
-            </article>
+            <div class="lobby-player-info">
+              <strong id="lobbyNicknameDisplay" class="lobby-player-name"></strong>
+              <span class="lobby-player-rank-row">
+                <span class="lobby-player-rank-label" data-i18n="lobby.rankLabel">순위</span>
+                <strong id="lobbyRankDisplay" class="lobby-player-rank">-</strong>
+              </span>
+            </div>
+
+            <input id="nicknameInput" name="nickname" type="text" maxlength="12" autocomplete="nickname" hidden>
+            <form id="startForm">
+              <button id="startButton" type="submit" class="solid-button lobby-start-btn" disabled data-i18n="lobby.start">Start Game</button>
+            </form>
           </div>
         </section>
 
@@ -111,7 +133,17 @@
                   <article class="guide-card">
                     <img class="guide-thumb" data-guide-item="special1" alt="Special 1">
                     <strong data-i18n="item.special1">Full Moon</strong>
-                    <span class="guide-points guide-points--special" data-i18n="item.special1.effect">+14s</span>
+                    <span class="guide-points guide-points--special" data-i18n="item.special1.effect">+10s</span>
+                  </article>
+                  <article class="guide-card">
+                    <img class="guide-thumb" data-guide-item="heal1" alt="Special 2">
+                    <strong data-i18n="item.heal1">Yachiyo Doll</strong>
+                    <span class="guide-points guide-points--special" data-i18n="item.heal1.effect">+1HP</span>
+                  </article>
+                  <article class="guide-card">
+                    <img class="guide-thumb" data-guide-item="iroha" alt="Iroha">
+                    <strong data-i18n="item.iroha">이로하</strong>
+                    <span class="guide-points guide-points--iroha">+50</span>
                   </article>
                 </div>
               </div>

@@ -1,6 +1,7 @@
 import { PLAY_BOUNDS, VIRTUAL_HEIGHT, GAME_DURATION, GROUND_Y } from "./constants.js";
 import { ITEM_TYPES } from "./config/items.js";
 import { ROUND_DEFINITIONS } from "./config/progression.js";
+import { playItemSoundEffect } from "./audio.js";
 import { t } from "./i18n.js";
 import { fetchRankingsFromProvider, submitScoreToProvider } from "./ranking-service.js";
 import { state, resetRound } from "./state.js";
@@ -43,19 +44,54 @@ function getRoundProgressRatio() {
   return clamp((state.elapsed - currentRound.startsAt) / Math.max(1, roundEnd - currentRound.startsAt), 0, 1);
 }
 
-function chooseItemType() {
-  let itemType = chooseWeightedItem(ITEM_TYPES);
-
-  if (itemType.key === "special1") {
-    const activeCount = state.items.filter((item) => item.type.key === itemType.key).length;
-    const withinCooldown = state.elapsed - state.lastSpecialSpawnAt < (itemType.spawnCooldown ?? 0);
-
-    if (activeCount >= (itemType.maxActive ?? Number.POSITIVE_INFINITY) || withinCooldown) {
-      itemType = chooseWeightedItem(ITEM_TYPES.filter((candidate) => candidate.key !== itemType.key));
-    }
+function getLastSpawnAt(itemKey) {
+  if (itemKey === "special1") {
+    return state.lastSpecialSpawnAt;
   }
 
-  return itemType;
+  if (itemKey === "heal1") {
+    return state.lastHealSpawnAt;
+  }
+
+  return Number.NEGATIVE_INFINITY;
+}
+
+function rememberSpawn(itemKey) {
+  if (itemKey === "special1") {
+    state.lastSpecialSpawnAt = state.elapsed;
+  }
+
+  if (itemKey === "heal1") {
+    state.lastHealSpawnAt = state.elapsed;
+  }
+}
+
+function canSpawnItemType(itemType) {
+  if ((itemType.minRound ?? 1) > state.round) {
+    return false;
+  }
+
+  if (itemType.requiresMissingHealth && state.health >= state.maxHealth) {
+    return false;
+  }
+
+  const activeCount = state.items.filter((item) => item.type.key === itemType.key).length;
+  if (activeCount >= (itemType.maxActive ?? Number.POSITIVE_INFINITY)) {
+    return false;
+  }
+
+  const withinCooldown = state.elapsed - getLastSpawnAt(itemType.key) < (itemType.spawnCooldown ?? 0);
+  return !withinCooldown;
+}
+
+function chooseItemType() {
+  const spawnableItemTypes = ITEM_TYPES.filter(canSpawnItemType);
+
+  if (spawnableItemTypes.length) {
+    return chooseWeightedItem(spawnableItemTypes);
+  }
+
+  return chooseWeightedItem(ITEM_TYPES.filter((itemType) => !itemType.requiresMissingHealth));
 }
 
 function getNextSpawnDelay(roundDefinition, ratio) {
@@ -80,9 +116,7 @@ function spawnItem() {
     spin: randomRange(-1.6, 1.6)
   });
 
-  if (itemType.key === "special1") {
-    state.lastSpecialSpawnAt = state.elapsed;
-  }
+  rememberSpawn(itemType.key);
 }
 
 function getPlayerHitbox() {
@@ -117,8 +151,17 @@ function addFloatText(text, x, y, color) {
 function applyItemEffect(item) {
   const pointDelta = item.type.points ?? 0;
   const timeBonus = item.type.timeBonus ?? 0;
+  const heal = item.type.heal ?? 0;
   const damage = item.type.damage ?? 0;
   state.score += pointDelta;
+  playItemSoundEffect(item.type.soundKey);
+
+  if (heal > 0) {
+    state.health = Math.min(state.maxHealth, state.health + heal);
+    state.shake = 0.08;
+    addFloatText(`+${heal}HP`, item.x, item.y - item.type.size * 0.18, item.type.color);
+    return;
+  }
 
   if (timeBonus > 0) {
     state.timeLimit += timeBonus;
@@ -135,7 +178,7 @@ function applyItemEffect(item) {
   }
 
   state.shake = 0.2;
-  state.damageTimer = 0.55;
+  state.damageTimer = 0.65;
   state.health = Math.max(0, state.health - damage);
   addFloatText(String(pointDelta), item.x, item.y - item.type.size * 0.18, item.type.color);
   addFloatText(`-${damage}HP`, item.x, item.y + item.type.size * 0.1, "#fff5f3");
@@ -159,6 +202,7 @@ function getResultNoticeText() {
 
 async function submitScore() {
   const payload = await submitScoreToProvider({
+    playerId: state.playerId,
     name: state.nickname,
     score: state.score
   });

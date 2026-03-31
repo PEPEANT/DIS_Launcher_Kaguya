@@ -24,6 +24,7 @@ export function normalizeName(name) {
 
 export const state = {
   phase: "loading",
+  playerId: "",
   nickname: "",
   round: 1,
   roundLabelKey: "round.1.label",
@@ -45,6 +46,7 @@ export const state = {
   shake: 0,
   damageTimer: 0,
   lastSpecialSpawnAt: Number.NEGATIVE_INFINITY,
+  lastHealSpawnAt: Number.NEGATIVE_INFINITY,
   assets: null,
   input: {
     left: false,
@@ -76,6 +78,7 @@ export function resetRound(name) {
   state.shake = 0;
   state.damageTimer = 0;
   state.lastSpecialSpawnAt = Number.NEGATIVE_INFINITY;
+  state.lastHealSpawnAt = Number.NEGATIVE_INFINITY;
   state.input.left = false;
   state.input.right = false;
   state.input.jumpQueued = false;

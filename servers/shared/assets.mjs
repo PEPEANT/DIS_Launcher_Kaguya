@@ -31,25 +31,6 @@ export async function resolvePublicFile(publicDir, urlPath) {
   }
 }
 
-export async function resolveRootImageFile(baseDir, filename) {
-  if (!/^[A-Za-z0-9_-]+\.(png|jpg|jpeg)$/u.test(filename)) {
-    return null;
-  }
-
-  const absolutePath = path.resolve(baseDir, filename);
-
-  if (!absolutePath.startsWith(baseDir)) {
-    return null;
-  }
-
-  try {
-    const stats = await fs.stat(absolutePath);
-    return stats.isFile() ? absolutePath : null;
-  } catch {
-    return null;
-  }
-}
-
 export function resolveAssetFile(baseDir, relativePath) {
   if (!isAllowedAssetPath(relativePath)) {
     return null;

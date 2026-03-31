@@ -21,6 +21,15 @@ export function normalizeName(input) {
   return Array.from(collapsed).slice(0, 12).join("");
 }
 
+export function normalizePlayerId(input) {
+  if (typeof input !== "string") {
+    return "";
+  }
+
+  const trimmed = input.trim();
+  return /^[A-Za-z0-9_-]{16,64}$/u.test(trimmed) ? trimmed : "";
+}
+
 function compareRankings(left, right) {
   if (left.score !== right.score) {
     return right.score - left.score;
@@ -29,15 +38,27 @@ function compareRankings(left, right) {
   return String(left.submittedAt).localeCompare(String(right.submittedAt));
 }
 
+function getEntryIdentity(entry) {
+  const playerId = normalizePlayerId(entry?.playerId);
+  if (playerId) {
+    return `player:${playerId}`;
+  }
+
+  const name = normalizeName(entry?.name);
+  return name ? `legacy:${name}` : "";
+}
+
 function sanitizeRankings(rawRankings) {
-  const bestByName = new Map();
+  const bestByIdentity = new Map();
 
   for (const entry of Array.isArray(rawRankings) ? rawRankings : []) {
     const name = normalizeName(entry?.name);
+    const playerId = normalizePlayerId(entry?.playerId);
     const score = Number(entry?.score);
     const submittedAt = typeof entry?.submittedAt === "string" ? entry.submittedAt : new Date(0).toISOString();
+    const identity = getEntryIdentity({ name, playerId });
 
-    if (!name || !Number.isFinite(score)) {
+    if (!name || !identity || !Number.isFinite(score)) {
       continue;
     }
 
@@ -47,13 +68,17 @@ function sanitizeRankings(rawRankings) {
       submittedAt
     };
 
-    const existing = bestByName.get(name);
+    if (playerId) {
+      nextEntry.playerId = playerId;
+    }
+
+    const existing = bestByIdentity.get(identity);
     if (!existing || compareRankings(nextEntry, existing) < 0) {
-      bestByName.set(name, nextEntry);
+      bestByIdentity.set(identity, nextEntry);
     }
   }
 
-  return [...bestByName.values()].sort(compareRankings).slice(0, MAX_RANKINGS);
+  return [...bestByIdentity.values()].sort(compareRankings).slice(0, MAX_RANKINGS);
 }
 
 export async function readRankings() {
@@ -73,7 +98,8 @@ export async function writeRankings(rankings) {
   return nextRankings;
 }
 
-export async function submitRanking({ name, score }) {
+export async function submitRanking({ playerId, name, score }) {
+  const safePlayerId = normalizePlayerId(playerId);
   const safeName = normalizeName(name);
   const safeScore = Math.floor(Number(score));
 
@@ -86,26 +112,69 @@ export async function submitRanking({ name, score }) {
   }
 
   const rankings = await readRankings();
-  const existing = rankings.find((entry) => entry.name === safeName);
+  const samePlayerEntry = safePlayerId
+    ? rankings.find((entry) => normalizePlayerId(entry.playerId) === safePlayerId)
+    : null;
+  const legacyNameEntry = rankings.find((entry) => !normalizePlayerId(entry.playerId) && entry.name === safeName);
+  const existing = samePlayerEntry || legacyNameEntry || null;
   const submittedAt = new Date().toISOString();
+  const shouldRenameExistingPlayer = Boolean(
+    safePlayerId
+    && samePlayerEntry
+    && samePlayerEntry.name !== safeName
+  );
 
   let accepted = false;
   let nextRankings = rankings;
 
   if (!existing || safeScore > existing.score) {
-    const withoutCurrentPlayer = rankings.filter((entry) => entry.name !== safeName);
+    const withoutCurrentPlayer = rankings.filter((entry) => {
+      const entryPlayerId = normalizePlayerId(entry.playerId);
+
+      if (safePlayerId && entryPlayerId === safePlayerId) {
+        return false;
+      }
+
+      if (safePlayerId && !entryPlayerId && entry.name === safeName) {
+        return false;
+      }
+
+      if (!safePlayerId && !entryPlayerId && entry.name === safeName) {
+        return false;
+      }
+
+      return true;
+    });
+    const nextEntry = { name: safeName, score: safeScore, submittedAt };
+    if (safePlayerId) {
+      nextEntry.playerId = safePlayerId;
+    }
+
     nextRankings = await writeRankings([
       ...withoutCurrentPlayer,
-      { name: safeName, score: safeScore, submittedAt }
+      nextEntry
     ]);
     accepted = true;
+  } else if (shouldRenameExistingPlayer) {
+    const withoutCurrentPlayer = rankings.filter((entry) => normalizePlayerId(entry.playerId) !== safePlayerId);
+    nextRankings = await writeRankings([
+      ...withoutCurrentPlayer,
+      {
+        playerId: safePlayerId,
+        name: safeName,
+        score: existing.score,
+        submittedAt: existing.submittedAt
+      }
+    ]);
   } else {
     nextRankings = await writeRankings(rankings);
   }
 
+  const rankIdentity = getEntryIdentity({ playerId: safePlayerId, name: safeName });
+
   return {
     accepted,
-    rank: nextRankings.findIndex((entry) => entry.name === safeName) + 1 || null,
+    rank: nextRankings.findIndex((entry) => getEntryIdentity(entry) === rankIdentity) + 1 || null,
     rankings: nextRankings
   };
 }

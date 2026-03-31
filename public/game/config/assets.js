@@ -2,6 +2,7 @@ export const ASSET_DEFINITIONS = [
   { key: "backgroundRound1", file: "scene/c.png", chromaKey: false },
   { key: "backgroundRound2", file: "scene/c2.png", chromaKey: false },
   { key: "backgroundRound3", file: "scene/c3.png", chromaKey: false },
+  { key: "backgroundRound4", file: "scene/c4.png", chromaKey: false },
   { key: "gameOver", file: "scene/5.png", chromaKey: true },
   { key: "rankOne", file: "scene/6.png", chromaKey: true },
   { key: "idle", file: "character/0.png", chromaKey: true },
@@ -14,7 +15,10 @@ export const ASSET_DEFINITIONS = [
   { key: "snack3", file: "item/03.png", chromaKey: true },
   { key: "snack4", file: "item/04.png", chromaKey: true },
   { key: "snack5", file: "item/05.png", chromaKey: true },
+  { key: "iroha", file: "item/06.png", chromaKey: true },
   { key: "special1", file: "item/special_01.png", chromaKey: true },
+  { key: "heal1", file: "item/yachiyo_doll.png", sourceFile: "item/yachiyo_doll.jpg", chromaKey: true },
+  { key: "introFigure", file: "special/intro_figure.png", chromaKey: true },
   { key: "danger1", file: "item/001.png", chromaKey: true },
   { key: "danger2", file: "item/002.png", chromaKey: true },
   { key: "danger3", file: "item/003.png", chromaKey: true }

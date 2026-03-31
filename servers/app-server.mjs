@@ -3,7 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { getAppPort, getRankingApiBaseUrl, PROCESSED_ASSETS_DIR, PUBLIC_DIR, ROOT_DIR } from "./shared/config.mjs";
-import { resolveAssetFile, resolvePublicFile, resolveRootImageFile } from "./shared/assets.mjs";
+import { resolveAssetFile, resolvePublicFile } from "./shared/assets.mjs";
 import { sendFile, sendJavaScript, sendJson, sendText } from "./shared/http.mjs";
 
 function isDirectRun(moduleUrl) {
@@ -12,9 +12,19 @@ function isDirectRun(moduleUrl) {
 
 function buildAppConfigScript(rankingApiBaseUrl) {
   return `window.__APP_CONFIG__ = Object.freeze(${JSON.stringify({
+    rankingProvider: "firebase",
     rankingApiBaseUrl,
     assetBaseUrl: "",
-    processedAssetBaseUrl: "/processed-assets"
+    processedAssetBaseUrl: "/processed-assets",
+    firebase: {
+      apiKey: "AIzaSyCVk-H_DkZfbo_KaEg9C3Kq1ij4ziHmW6M",
+      authDomain: "kaguya-snack-rush.firebaseapp.com",
+      projectId: "kaguya-snack-rush",
+      storageBucket: "kaguya-snack-rush.firebasestorage.app",
+      messagingSenderId: "594120586215",
+      appId: "1:594120586215:web:c7e8a99519d6b4335e0342",
+      measurementId: "G-GRSREBV6S9"
+    }
   })});\n`;
 }
 
@@ -39,18 +49,6 @@ export async function startAppServer({
 
       if (pathname === "/app-config.js" && request.method === "GET") {
         sendJavaScript(response, 200, buildAppConfigScript(rankingApiBaseUrl));
-        return;
-      }
-
-      if (pathname === "/c0.png" && request.method === "GET") {
-        const assetPath = await resolveRootImageFile(ROOT_DIR, "c0.png");
-
-        if (!assetPath) {
-          sendText(response, 404, "Asset not found.");
-          return;
-        }
-
-        await sendFile(response, assetPath);
         return;
       }
 

@@ -15,9 +15,29 @@ function createTrack(src, volume) {
   return audio;
 }
 
+function createEffect(src, { volume = 1, playbackRate = 1 } = {}) {
+  if (typeof Audio === "undefined") {
+    return null;
+  }
+
+  const audio = new Audio(src);
+  audio.preload = "auto";
+  return {
+    src: audio.src || src,
+    volume,
+    playbackRate
+  };
+}
+
 const tracks = {
   lobby: createTrack("./audio/ost00.mp3", 0.34),
   game: createTrack("./audio/ost01.mp3", 0.3)
+};
+
+const effects = {
+  pickup: createEffect("./audio/dr1.mp3", { volume: 0.72 }),
+  special: createEffect("./audio/dr2.mp3", { volume: 0.82 }),
+  damage: createEffect("./audio/dr1.mp3", { volume: 0.8, playbackRate: 0.78 })
 };
 
 let unlocked = false;
@@ -25,6 +45,29 @@ let enabled = true;
 let desiredTrackKey = "lobby";
 let currentTrackKey = null;
 let initialized = false;
+const activeEffects = new Set();
+
+function cleanupEffect(audio) {
+  activeEffects.delete(audio);
+}
+
+function applyEffectPlayback(audio, effect) {
+  audio.preload = "auto";
+  audio.volume = effect.volume;
+  audio.playbackRate = effect.playbackRate;
+
+  if ("preservesPitch" in audio) {
+    audio.preservesPitch = false;
+  }
+
+  if ("mozPreservesPitch" in audio) {
+    audio.mozPreservesPitch = false;
+  }
+
+  if ("webkitPreservesPitch" in audio) {
+    audio.webkitPreservesPitch = false;
+  }
+}
 
 function pauseAllTracks() {
   for (const track of Object.values(tracks)) {
@@ -158,4 +201,27 @@ export function playLobbyMusic() {
 export function playGameMusic() {
   desiredTrackKey = "game";
   void playDesiredTrack();
+}
+
+export function playItemSoundEffect(effectKey) {
+  unlockAudio();
+
+  if (typeof Audio === "undefined" || !unlocked) {
+    return;
+  }
+
+  const effect = effects[effectKey];
+  if (!effect) {
+    return;
+  }
+
+  const audio = new Audio(effect.src);
+  applyEffectPlayback(audio, effect);
+  audio.addEventListener("ended", () => cleanupEffect(audio), { once: true });
+  audio.addEventListener("error", () => cleanupEffect(audio), { once: true });
+  activeEffects.add(audio);
+
+  void audio.play().catch(() => {
+    cleanupEffect(audio);
+  });
 }

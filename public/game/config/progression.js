@@ -16,7 +16,7 @@ export const ROUND_DEFINITIONS = [
   },
   {
     round: 2,
-    startsAt: 30,
+    startsAt: 25,
     labelKey: "round.2.label",
     transitionKey: "round.2.transition",
     backgroundKey: "backgroundRound2",
@@ -31,17 +31,32 @@ export const ROUND_DEFINITIONS = [
   },
   {
     round: 3,
-    startsAt: 60,
+    startsAt: 50,
     labelKey: "round.3.label",
     transitionKey: "round.3.transition",
     backgroundKey: "backgroundRound3",
     speedMin: 300,
-    speedMax: 470,
-    speedVariance: 22,
-    driftMin: -42,
-    driftMax: 42,
+    speedMax: 400,
+    speedVariance: 20,
+    driftMin: -34,
+    driftMax: 34,
     spawnMin: 0.42,
     spawnMax: 0.66,
     maxActiveItems: 6
+  },
+  {
+    round: 4,
+    startsAt: 70,
+    labelKey: "round.4.label",
+    transitionKey: "round.4.transition",
+    backgroundKey: "backgroundRound4",
+    speedMin: 360,
+    speedMax: 500,
+    speedVariance: 24,
+    driftMin: -46,
+    driftMax: 46,
+    spawnMin: 0.34,
+    spawnMax: 0.52,
+    maxActiveItems: 7
   }
 ];

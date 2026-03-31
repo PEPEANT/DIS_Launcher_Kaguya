@@ -4,6 +4,7 @@ import { exitLandscapePresentation, isPortraitTouchViewport, isTouchDevice, requ
 import { elements } from "./dom.js";
 import { initI18n, t } from "./i18n.js";
 import { fetchRankings, handleMovementKey, startRound, updateGame } from "./logic.js";
+import { getOrCreatePlayerId, getSavedNickname, rememberNickname } from "./player-identity.js";
 import { renderFrame } from "./render.js";
 import { normalizeName, state } from "./state.js";
 import {
@@ -16,6 +17,7 @@ import {
   setStartButtonState,
   setTouchControlsVisible,
   showGameScreen,
+  showIntroScreen,
   showLobbyScreen
 } from "./ui.js";
 
@@ -71,10 +73,16 @@ function launchGame() {
   requestLandscapePresentation(elements.gameScreen);
 }
 
+function updateLobbyPlayerInfo() {
+  elements.lobbyNicknameDisplay.textContent = state.nickname || "-";
+  elements.lobbyRankDisplay.textContent = state.lastRank ? `#${state.lastRank}` : "-";
+}
+
 function returnToLobby() {
   state.phase = "ready";
   setLobbyMobilePanel("none");
   showLobbyScreen();
+  updateLobbyPlayerInfo();
   playLobbyMusic();
   syncResponsiveUi();
   fetchRankings();
@@ -99,6 +107,19 @@ function bindHoldButton(element, code) {
 }
 
 function bindEvents() {
+  elements.introForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const rawValue = elements.introNicknameInput.value.trim();
+    const nickname = normalizeName(rawValue) || state.nickname || t("lobby.defaultNickname");
+    state.nickname = nickname;
+    elements.introNicknameInput.value = nickname;
+    elements.nicknameInput.value = nickname;
+    rememberNickname(nickname);
+    showLobbyScreen();
+    updateLobbyPlayerInfo();
+    playLobbyMusic();
+  });
+
   window.addEventListener("keydown", (event) => {
     if (["ArrowLeft", "ArrowRight", "ArrowUp", "KeyA", "KeyD", "KeyW", "Space"].includes(event.code)) {
       event.preventDefault();
@@ -124,6 +145,7 @@ function bindEvents() {
 
     const nickname = getActiveNickname();
     elements.nicknameInput.value = nickname;
+    rememberNickname(nickname);
     startRound(nickname);
     launchGame();
   });
@@ -135,6 +157,7 @@ function bindEvents() {
 
     const nickname = getActiveNickname();
     elements.nicknameInput.value = nickname;
+    rememberNickname(nickname);
     startRound(nickname);
     launchGame();
   });
@@ -183,10 +206,16 @@ export async function boot() {
 
   booted = true;
   initI18n();
+  state.playerId = getOrCreatePlayerId();
+  const savedNickname = getSavedNickname();
+  if (savedNickname) {
+    state.nickname = savedNickname;
+    elements.introNicknameInput.value = savedNickname;
+    elements.nicknameInput.value = savedNickname;
+  }
   initAudio();
   bindEvents();
-  showLobbyScreen();
-  playLobbyMusic();
+  showIntroScreen();
   hideGameResult();
   syncResponsiveUi();
   setStartButtonState({
@@ -216,14 +245,19 @@ export async function boot() {
   try {
     state.assets = await loadAssets();
     renderGuideImages(state.assets);
-    await fetchRankings();
+    try {
+      await fetchRankings();
+    } catch {
+      state.rankings = [];
+      renderRankingList(state.rankings);
+      setRankingStatus(t("ranking.failed"));
+    }
     startRankingPolling();
     state.phase = "ready";
     setStartButtonState({
       label: t("boot.ready.button"),
       disabled: false
     });
-    elements.nicknameInput.focus();
   } catch {
     state.phase = "error";
     setStartButtonState({

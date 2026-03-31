@@ -10,13 +10,13 @@ export async function fetchRankings() {
   return response.json();
 }
 
-export async function submitScore({ name, score }) {
+export async function submitScore({ playerId, name, score }) {
   const response = await fetch(getRankingApiUrl("/api/rankings"), {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
     },
-    body: JSON.stringify({ name, score })
+    body: JSON.stringify({ playerId, name, score })
   });
 
   const payload = await response.json();
