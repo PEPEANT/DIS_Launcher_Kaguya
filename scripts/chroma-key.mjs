@@ -27,7 +27,47 @@ async function writePng(pixelBuffer, info, outputPath) {
   }).png().toFile(outputPath);
 }
 
-function applyChromaKey(pixelBuffer) {
+function softenGreenOutline(pixelBuffer, info) {
+  const { width, height, channels } = info;
+  const alphaAt = (x, y) => pixelBuffer[(y * width + x) * channels + 3];
+
+  for (let y = 1; y < height - 1; y += 1) {
+    for (let x = 1; x < width - 1; x += 1) {
+      const index = (y * width + x) * channels;
+      const red = pixelBuffer[index];
+      const green = pixelBuffer[index + 1];
+      const blue = pixelBuffer[index + 2];
+      const alpha = pixelBuffer[index + 3];
+
+      if (alpha < 220 || green <= Math.max(red, blue) + 14) {
+        continue;
+      }
+
+      let touchesTransparentEdge = false;
+
+      for (let offsetY = -1; offsetY <= 1 && !touchesTransparentEdge; offsetY += 1) {
+        for (let offsetX = -1; offsetX <= 1; offsetX += 1) {
+          if (offsetX === 0 && offsetY === 0) {
+            continue;
+          }
+
+          if (alphaAt(x + offsetX, y + offsetY) === 0) {
+            touchesTransparentEdge = true;
+            break;
+          }
+        }
+      }
+
+      if (!touchesTransparentEdge) {
+        continue;
+      }
+
+      pixelBuffer[index + 1] = Math.min(green, Math.max(red, blue) + 2);
+    }
+  }
+}
+
+function applyChromaKey(pixelBuffer, info) {
   let transparentPixels = 0;
 
   for (let index = 0; index < pixelBuffer.length; index += 4) {
@@ -47,7 +87,12 @@ function applyChromaKey(pixelBuffer) {
         pixelBuffer[index + 1] = 0;
         pixelBuffer[index + 2] = 0;
       } else if (nextAlpha < 255) {
-        pixelBuffer[index + 1] = Math.min(pixelBuffer[index + 1], strongestOther + 12);
+        const neutralGreen = Math.round((red + blue) / 2);
+        const despillTarget = nextAlpha <= 192
+          ? neutralGreen
+          : Math.min(strongestOther + 4, neutralGreen + 6);
+
+        pixelBuffer[index + 1] = Math.min(pixelBuffer[index + 1], despillTarget);
       }
 
       if (nextAlpha !== pixelBuffer[index + 3]) {
@@ -71,7 +116,8 @@ async function processAsset(definition) {
     .toBuffer({ resolveWithObject: true });
 
   const pixelBuffer = Buffer.from(data);
-  const transparentPixels = applyChromaKey(pixelBuffer);
+  const transparentPixels = applyChromaKey(pixelBuffer, info);
+  softenGreenOutline(pixelBuffer, info);
 
   await writePng(pixelBuffer, info, outputPath);
   await writePng(pixelBuffer, info, publicOutputPath);

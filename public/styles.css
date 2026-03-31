@@ -104,6 +104,14 @@ img {
   width: min(100%, 28rem);
 }
 
+.intro-nickname-status {
+  min-height: 1.3rem;
+  margin: -0.3rem 0 0;
+  color: #a14c1e;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
 .intro-title {
   margin: 0;
   font-family: "Do Hyeon", "Noto Sans KR", "Noto Sans JP", sans-serif;

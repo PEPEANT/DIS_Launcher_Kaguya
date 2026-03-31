@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 import { getRankingCorsOrigin, getRankingPort } from "./shared/config.mjs";
 import { sendJson, sendText } from "./shared/http.mjs";
-import { ensureRankingStorage, readRankings, submitRanking } from "./shared/rankings-store.mjs";
+import { ensureRankingStorage, isNicknameAvailable, readRankings, submitRanking } from "./shared/rankings-store.mjs";
 
 function isDirectRun(moduleUrl) {
   return process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(moduleUrl);
@@ -75,6 +75,14 @@ export async function startRankingServer({
         return;
       }
 
+      if (pathname === "/api/rankings/name-available" && request.method === "GET") {
+        sendJson(response, 200, await isNicknameAvailable({
+          playerId: requestUrl.searchParams.get("playerId"),
+          name: requestUrl.searchParams.get("name")
+        }));
+        return;
+      }
+
       if (pathname === "/api/rankings" && request.method === "POST") {
         const payload = await readJsonBody(request);
         sendJson(response, 200, await submitRanking(payload));
@@ -85,7 +93,10 @@ export async function startRankingServer({
     };
 
     handle().catch((error) => {
-      const statusCode = error.message === "Nickname is required." || error.message === "Score is invalid." || error.message === "Invalid JSON payload."
+      const statusCode = error.message === "Nickname is required."
+        || error.message === "Nickname is already taken."
+        || error.message === "Score is invalid."
+        || error.message === "Invalid JSON payload."
         ? 400
         : 500;
 

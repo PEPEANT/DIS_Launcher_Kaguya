@@ -10,6 +10,10 @@ export async function fetchRankingsFromProvider() {
   return (await getProvider()).fetchRankings();
 }
 
+export async function checkNicknameAvailabilityFromProvider(payload) {
+  return (await getProvider()).checkNicknameAvailability(payload);
+}
+
 export async function submitScoreToProvider(payload) {
   return (await getProvider()).submitScore(payload);
 }

@@ -1,5 +1,5 @@
 export const ITEM_TYPES = [
-  { key: "iroha", points: 50, weight: 0.035, size: 130, radius: 42, color: "#ede0ff", soundKey: "special" },
+  { key: "iroha", points: 50, weight: 0.014, size: 130, radius: 42, color: "#ede0ff", soundKey: "special" },
   { key: "snack1", points: 18, weight: 0.15, size: 122, radius: 38, color: "#fff6e0", soundKey: "pickup" },
   { key: "snack2", points: 32, weight: 0.15, size: 138, radius: 44, color: "#fff6e0", soundKey: "pickup" },
   { key: "snack3", points: 26, weight: 0.13, size: 144, radius: 48, color: "#fff6e0", soundKey: "pickup" },

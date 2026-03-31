@@ -2,10 +2,11 @@ import { loadAssets } from "./assets.js";
 import { initAudio, playGameMusic, playLobbyMusic, toggleMusic } from "./audio.js";
 import { exitLandscapePresentation, isPortraitTouchViewport, isTouchDevice, requestLandscapePresentation } from "./device.js";
 import { elements } from "./dom.js";
-import { initI18n, t } from "./i18n.js";
+import { getLang, initI18n, t } from "./i18n.js";
 import { fetchRankings, handleMovementKey, startRound, updateGame } from "./logic.js";
 import { getOrCreatePlayerId, getSavedNickname, rememberNickname } from "./player-identity.js";
 import { renderFrame } from "./render.js";
+import { checkNicknameAvailabilityFromProvider } from "./ranking-service.js";
 import { normalizeName, state } from "./state.js";
 import {
   hideGameResult,
@@ -25,6 +26,7 @@ let lastFrameTime = 0;
 let booted = false;
 let rankingPollTimer = 0;
 const RANKING_POLL_INTERVAL = 5000;
+const MAX_PLAYER_NUMBER = 99;
 
 function animate(currentTime) {
   if (!lastFrameTime) {
@@ -61,7 +63,115 @@ function startRankingPolling() {
 }
 
 function getActiveNickname() {
-  return normalizeName(elements.nicknameInput.value) || state.nickname || t("lobby.defaultNickname");
+  return normalizeName(elements.nicknameInput.value) || state.nickname;
+}
+
+function setIntroNicknameStatus(text = "") {
+  elements.introNicknameStatus.textContent = text;
+  elements.introNicknameStatus.hidden = !text;
+}
+
+function clearIntroNicknameValidation() {
+  elements.introNicknameInput.setCustomValidity("");
+  setIntroNicknameStatus("");
+}
+
+function getDefaultNicknameBase() {
+  return t("lobby.defaultNickname");
+}
+
+function getPreferredPlayerNumber() {
+  const seed = Array.from(state.playerId || "player").reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  return (seed % MAX_PLAYER_NUMBER) + 1;
+}
+
+function buildNumberedNickname(number) {
+  return normalizeName(`${getDefaultNicknameBase()}${number}`);
+}
+
+async function isNicknameAvailable(name) {
+  const payload = await checkNicknameAvailabilityFromProvider({
+    playerId: state.playerId,
+    name
+  });
+
+  return Boolean(payload?.available);
+}
+
+async function findSuggestedNickname() {
+  const startNumber = getPreferredPlayerNumber();
+
+  for (let offset = 0; offset < MAX_PLAYER_NUMBER; offset += 1) {
+    const candidateNumber = ((startNumber - 1 + offset) % MAX_PLAYER_NUMBER) + 1;
+    const candidate = buildNumberedNickname(candidateNumber);
+
+    if (await isNicknameAvailable(candidate)) {
+      return candidate;
+    }
+  }
+
+  return buildNumberedNickname(startNumber);
+}
+
+function getNicknameTakenMessage(suggestion) {
+  switch (getLang()) {
+    case "ja":
+      return `すでに使われているニックネームです。${suggestion} を使ってください。`;
+    case "en":
+      return `That nickname is already taken. Try ${suggestion}.`;
+    default:
+      return `이미 사용 중인 닉네임이에요. ${suggestion} 을 써주세요.`;
+  }
+}
+
+function getAutoNicknameMessage(nickname) {
+  switch (getLang()) {
+    case "ja":
+      return `空欄だったので ${nickname} を設定しました。`;
+    case "en":
+      return `Nickname was empty, so ${nickname} was assigned.`;
+    default:
+      return `닉네임이 비어 있어서 ${nickname} 으로 정했어요.`;
+  }
+}
+
+function getNicknameCheckFailedMessage() {
+  switch (getLang()) {
+    case "ja":
+      return "ニックネーム確認に失敗しました。もう一度試してください。";
+    case "en":
+      return "Could not verify the nickname. Please try again.";
+    default:
+      return "닉네임 확인에 실패했어요. 한 번만 다시 시도해주세요.";
+  }
+}
+
+function applyNickname(nickname) {
+  state.nickname = nickname;
+  elements.introNicknameInput.value = nickname;
+  elements.nicknameInput.value = nickname;
+  rememberNickname(nickname);
+}
+
+async function resolveIntroNickname(rawValue) {
+  const requestedNickname = normalizeName(rawValue);
+
+  if (!requestedNickname) {
+    const suggestedNickname = await findSuggestedNickname();
+    setIntroNicknameStatus(getAutoNicknameMessage(suggestedNickname));
+    return suggestedNickname;
+  }
+
+  if (await isNicknameAvailable(requestedNickname)) {
+    return requestedNickname;
+  }
+
+  const suggestion = await findSuggestedNickname();
+  const message = getNicknameTakenMessage(suggestion);
+  elements.introNicknameInput.setCustomValidity(message);
+  elements.introNicknameInput.reportValidity();
+  setIntroNicknameStatus(message);
+  return "";
 }
 
 function launchGame() {
@@ -107,17 +217,31 @@ function bindHoldButton(element, code) {
 }
 
 function bindEvents() {
-  elements.introForm.addEventListener("submit", (event) => {
+  elements.introNicknameInput.addEventListener("input", () => {
+    clearIntroNicknameValidation();
+  });
+
+  elements.introForm.addEventListener("submit", async (event) => {
     event.preventDefault();
-    const rawValue = elements.introNicknameInput.value.trim();
-    const nickname = normalizeName(rawValue) || state.nickname || t("lobby.defaultNickname");
-    state.nickname = nickname;
-    elements.introNicknameInput.value = nickname;
-    elements.nicknameInput.value = nickname;
-    rememberNickname(nickname);
-    showLobbyScreen();
-    updateLobbyPlayerInfo();
-    playLobbyMusic();
+
+    clearIntroNicknameValidation();
+    elements.introStartButton.disabled = true;
+    try {
+      const nickname = await resolveIntroNickname(elements.introNicknameInput.value.trim());
+
+      if (!nickname) {
+        return;
+      }
+
+      applyNickname(nickname);
+      showLobbyScreen();
+      updateLobbyPlayerInfo();
+      playLobbyMusic();
+    } catch {
+      setIntroNicknameStatus(getNicknameCheckFailedMessage());
+    } finally {
+      elements.introStartButton.disabled = false;
+    }
   });
 
   window.addEventListener("keydown", (event) => {
@@ -143,7 +267,7 @@ function bindEvents() {
       return;
     }
 
-    const nickname = getActiveNickname();
+    const nickname = getActiveNickname() || state.nickname;
     elements.nicknameInput.value = nickname;
     rememberNickname(nickname);
     startRound(nickname);
@@ -155,7 +279,7 @@ function bindEvents() {
       return;
     }
 
-    const nickname = getActiveNickname();
+    const nickname = getActiveNickname() || state.nickname;
     elements.nicknameInput.value = nickname;
     rememberNickname(nickname);
     startRound(nickname);
@@ -209,9 +333,10 @@ export async function boot() {
   state.playerId = getOrCreatePlayerId();
   const savedNickname = getSavedNickname();
   if (savedNickname) {
-    state.nickname = savedNickname;
-    elements.introNicknameInput.value = savedNickname;
-    elements.nicknameInput.value = savedNickname;
+    applyNickname(savedNickname);
+  } else {
+    const suggestedNickname = buildNumberedNickname(getPreferredPlayerNumber());
+    elements.introNicknameInput.value = suggestedNickname;
   }
   initAudio();
   bindEvents();
@@ -251,6 +376,11 @@ export async function boot() {
       state.rankings = [];
       renderRankingList(state.rankings);
       setRankingStatus(t("ranking.failed"));
+    }
+    if (!state.nickname) {
+      const suggestedNickname = buildNumberedNickname(getPreferredPlayerNumber());
+      elements.introNicknameInput.value = suggestedNickname;
+      elements.nicknameInput.value = suggestedNickname;
     }
     startRankingPolling();
     state.phase = "ready";

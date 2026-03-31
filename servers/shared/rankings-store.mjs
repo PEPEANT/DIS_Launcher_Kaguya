@@ -98,6 +98,28 @@ export async function writeRankings(rankings) {
   return nextRankings;
 }
 
+export async function isNicknameAvailable({ playerId, name }) {
+  const safePlayerId = normalizePlayerId(playerId);
+  const safeName = normalizeName(name);
+
+  if (!safeName) {
+    return { available: false };
+  }
+
+  const rankings = await readRankings();
+  const conflictingEntry = rankings.find((entry) => {
+    if (entry.name !== safeName) {
+      return false;
+    }
+
+    return normalizePlayerId(entry.playerId) !== safePlayerId;
+  });
+
+  return {
+    available: !conflictingEntry
+  };
+}
+
 export async function submitRanking({ playerId, name, score }) {
   const safePlayerId = normalizePlayerId(playerId);
   const safeName = normalizeName(name);
@@ -109,6 +131,11 @@ export async function submitRanking({ playerId, name, score }) {
 
   if (!Number.isFinite(safeScore)) {
     throw new Error("Score is invalid.");
+  }
+
+  const availability = await isNicknameAvailable({ playerId: safePlayerId, name: safeName });
+  if (!availability.available) {
+    throw new Error("Nickname is already taken.");
   }
 
   const rankings = await readRankings();

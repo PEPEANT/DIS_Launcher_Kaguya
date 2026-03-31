@@ -3,6 +3,7 @@ export const elements = {
   introScreen: document.getElementById("introScreen"),
   introForm: document.getElementById("introForm"),
   introNicknameInput: document.getElementById("introNicknameInput"),
+  introNicknameStatus: document.getElementById("introNicknameStatus"),
   introStartButton: document.getElementById("introStartButton"),
   lobbyScreen: document.getElementById("lobbyScreen"),
   gameScreen: document.getElementById("gameScreen"),

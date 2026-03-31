@@ -8,7 +8,8 @@ import {
   limit,
   orderBy,
   query,
-  runTransaction
+  runTransaction,
+  where
 } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
 import { getFirebaseRuntimeConfig } from "../config/runtime.js";
@@ -94,9 +95,40 @@ async function readTopRankings() {
     .slice(0, MAX_RANKINGS);
 }
 
+async function readEntriesByName(name) {
+  const nameQuery = query(
+    collection(getDb(), COLLECTION_NAME),
+    where("name", "==", name),
+    limit(2)
+  );
+  const snapshot = await getDocs(nameQuery);
+
+  return snapshot.docs
+    .map((entryDoc) => sanitizeEntry(entryDoc.data()))
+    .filter(Boolean);
+}
+
 export async function fetchRankings() {
   ensureFirebaseReady();
   return { rankings: await readTopRankings() };
+}
+
+export async function checkNicknameAvailability({ playerId, name }) {
+  ensureFirebaseReady();
+
+  const safePlayerId = normalizePlayerId(playerId);
+  const safeName = normalizeName(name);
+
+  if (!safeName) {
+    return { available: false };
+  }
+
+  const matchedEntries = await readEntriesByName(safeName);
+  const conflictingEntry = matchedEntries.find((entry) => entry.playerId !== safePlayerId);
+
+  return {
+    available: !conflictingEntry
+  };
 }
 
 export async function submitScore({ playerId, name, score }) {
@@ -116,6 +148,11 @@ export async function submitScore({ playerId, name, score }) {
 
   if (!Number.isFinite(safeScore)) {
     throw new Error("Score is invalid.");
+  }
+
+  const availability = await checkNicknameAvailability({ playerId: safePlayerId, name: safeName });
+  if (!availability.available) {
+    throw new Error("Nickname is already taken.");
   }
 
   const submittedAt = new Date().toISOString();
