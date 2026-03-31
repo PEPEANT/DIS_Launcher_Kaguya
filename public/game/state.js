@@ -45,6 +45,9 @@ export const state = {
   isNewBest: false,
   shake: 0,
   damageTimer: 0,
+  resultSceneKey: "",
+  resultSceneX: 0,
+  resultSceneY: 0,
   lastSpecialSpawnAt: Number.NEGATIVE_INFINITY,
   lastHealSpawnAt: Number.NEGATIVE_INFINITY,
   assets: null,
@@ -77,6 +80,9 @@ export function resetRound(name) {
   state.isNewBest = false;
   state.shake = 0;
   state.damageTimer = 0;
+  state.resultSceneKey = "";
+  state.resultSceneX = 0;
+  state.resultSceneY = 0;
   state.lastSpecialSpawnAt = Number.NEGATIVE_INFINITY;
   state.lastHealSpawnAt = Number.NEGATIVE_INFINITY;
   state.input.left = false;

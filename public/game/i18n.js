@@ -78,9 +78,9 @@ const TRANSLATIONS = {
     "result.rankOne": "랭킹 1위",
     "result.newBestTop": "새 최고기록 / 랭킹 1위",
 
-    "mobile.left": "왼쪽",
-    "mobile.right": "오른쪽",
-    "mobile.jump": "점프",
+    "mobile.left": "<",
+    "mobile.right": ">",
+    "mobile.jump": "^",
     "audio.on": "음악 켜기",
     "audio.off": "음악 끄기",
 
@@ -185,9 +185,9 @@ const TRANSLATIONS = {
     "result.rankOne": "Rank #1",
     "result.newBestTop": "New Best / Rank #1",
 
-    "mobile.left": "Left",
-    "mobile.right": "Right",
-    "mobile.jump": "Jump",
+    "mobile.left": "<",
+    "mobile.right": ">",
+    "mobile.jump": "^",
     "audio.on": "Music On",
     "audio.off": "Music Off",
 
@@ -292,9 +292,9 @@ const TRANSLATIONS = {
     "result.rankOne": "1位",
     "result.newBestTop": "新記録 / 1位",
 
-    "mobile.left": "左",
-    "mobile.right": "右",
-    "mobile.jump": "ジャンプ",
+    "mobile.left": "<",
+    "mobile.right": ">",
+    "mobile.jump": "^",
     "audio.on": "音楽オン",
     "audio.off": "音楽オフ",
 

@@ -5,7 +5,9 @@ import { playItemSoundEffect } from "./audio.js";
 import { t } from "./i18n.js";
 import { fetchRankingsFromProvider, submitScoreToProvider } from "./ranking-service.js";
 import { state, resetRound } from "./state.js";
-import { renderRankingList, setRankingStatus, showGameResult } from "./ui.js";
+import { hideGameResult, renderRankingList, setRankingStatus, setTouchControlsVisible, showGameResult } from "./ui.js";
+
+const RESULT_SCENE_DELAY_MS = 1600;
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
@@ -17,6 +19,12 @@ function lerp(start, end, ratio) {
 
 function randomRange(min, max) {
   return min + Math.random() * (max - min);
+}
+
+function wait(ms) {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
 }
 
 function chooseWeightedItem(itemTypes) {
@@ -242,20 +250,20 @@ export async function finishGame() {
     return;
   }
 
+  state.resultSceneX = state.player.x;
+  state.resultSceneY = state.player.y;
+  state.resultSceneKey = "gameOver";
   state.phase = "submitting";
-  showGameResult({
-    eyebrow: t("result.eyebrow"),
-    title: t("result.saving"),
-    noticeText: "",
-    score: state.score,
-    rankText: "...",
-    restartLabel: t("result.saving"),
-    restartDisabled: true,
-    lobbyDisabled: true
-  });
+  hideGameResult();
+  setTouchControlsVisible(false);
+  const sceneDelay = wait(RESULT_SCENE_DELAY_MS);
 
   try {
     await submitScore();
+    if (state.isNewBest || state.lastRank === 1) {
+      state.resultSceneKey = "rankOne";
+    }
+    await sceneDelay;
     state.phase = "finished";
     showGameResult({
       eyebrow: t("result.eyebrow"),
@@ -268,6 +276,7 @@ export async function finishGame() {
       lobbyDisabled: false
     });
   } catch {
+    await sceneDelay;
     state.phase = "finished";
     showGameResult({
       eyebrow: t("result.eyebrow"),

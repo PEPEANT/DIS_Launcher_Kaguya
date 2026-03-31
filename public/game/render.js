@@ -204,6 +204,10 @@ function getPlayerSprite() {
 }
 
 function drawPlayer() {
+  if (state.resultSceneKey && (state.phase === "finished" || state.phase === "submitting")) {
+    return;
+  }
+
   const player = state.player;
   const sprite = getPlayerSprite();
 
@@ -289,7 +293,8 @@ function drawGameOverScene() {
     return;
   }
 
-  const resultScene = state.lastRank === 1 && state.assets?.rankOne ? state.assets.rankOne : state.assets?.gameOver;
+  const sceneKey = state.resultSceneKey || "gameOver";
+  const resultScene = state.assets?.[sceneKey];
   if (!resultScene) {
     return;
   }
@@ -298,8 +303,9 @@ function drawGameOverScene() {
   ctx.fillStyle = "rgba(20, 10, 4, 0.26)";
   ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
 
-  const maxWidth = 640;
-  const maxHeight = 420;
+  const isRankScene = sceneKey === "rankOne";
+  const maxWidth = isRankScene ? 360 : 540;
+  const maxHeight = isRankScene ? 480 : 300;
   const imageRatio = resultScene.width / resultScene.height;
   let drawWidth = maxWidth;
   let drawHeight = drawWidth / imageRatio;
@@ -309,8 +315,15 @@ function drawGameOverScene() {
     drawWidth = drawHeight * imageRatio;
   }
 
-  const x = (VIRTUAL_WIDTH - drawWidth) / 2;
-  const y = VIRTUAL_HEIGHT - drawHeight - 20;
+  const anchorX = clamp(state.resultSceneX || state.player.x, drawWidth * 0.35, VIRTUAL_WIDTH - drawWidth * 0.35);
+  const anchorY = state.resultSceneY || state.player.y || GROUND_Y;
+
+  const centeredY = anchorY - state.player.height * 0.35;
+  const alignedY = anchorY - drawHeight + 32;
+  const rawX = anchorX - drawWidth / 2;
+  const rawY = isRankScene ? alignedY : centeredY - drawHeight / 2 + 28;
+  const x = clamp(rawX, 18, VIRTUAL_WIDTH - drawWidth - 18);
+  const y = clamp(rawY, 22, VIRTUAL_HEIGHT - drawHeight - 16);
 
   ctx.globalAlpha = 0.95;
   ctx.drawImage(resultScene, x, y, drawWidth, drawHeight);
@@ -343,7 +356,7 @@ function drawRoundTransition() {
 export function renderFrame() {
   drawBackground();
 
-  const shaking = state.phase === "playing" || state.phase === "submitting";
+  const shaking = state.phase === "playing";
   const shakeX = shaking ? (Math.random() - 0.5) * state.shake * 24 : 0;
   const shakeY = shaking ? (Math.random() - 0.5) * state.shake * 24 : 0;
 
@@ -355,7 +368,10 @@ export function renderFrame() {
   drawFloatTexts();
   drawGameOverScene();
   ctx.restore();
-  drawTopHud();
-  drawRoundBanner();
-  drawRoundTransition();
+
+  if (state.phase === "playing") {
+    drawTopHud();
+    drawRoundBanner();
+    drawRoundTransition();
+  }
 }

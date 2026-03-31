@@ -42,6 +42,7 @@ export function showGameResult({
   lobbyDisabled = false
 }) {
   elements.overlay.hidden = false;
+  elements.mobileControls.hidden = true;
   elements.overlayEyebrow.textContent = eyebrow;
   elements.overlayTitle.textContent = title;
   elements.resultNotice.textContent = noticeText;
