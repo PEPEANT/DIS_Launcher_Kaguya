@@ -196,6 +196,18 @@ export function toggleMusic() {
   void playDesiredTrack();
 }
 
+export function ensureMusicEnabled() {
+  unlockAudio();
+
+  if (!enabled) {
+    enabled = true;
+    rememberPreference();
+    updateMusicToggleButton();
+  }
+
+  void playDesiredTrack();
+}
+
 export function playLobbyMusic() {
   desiredTrackKey = "lobby";
   void playDesiredTrack();

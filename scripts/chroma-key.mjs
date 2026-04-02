@@ -18,6 +18,9 @@ const ASSET_DEFINITIONS = [...new Map(
 ).values()];
 const STATIC_PUBLIC_ASSETS = [
   "scene/c0.png",
+  "scene/Login_Main_kr.png",
+  "scene/Login_Main_jp.png",
+  "special/intro_figure2.png",
   ...ASSET_DEFINITIONS.filter((definition) => !definition.chromaKey).map((definition) => definition.file)
 ];
 const STATIC_PROCESSED_ASSETS = [
