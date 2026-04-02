@@ -327,6 +327,12 @@ function renderActiveAllRankings() {
   const shouldShowAll = season === CURRENT_SEASON || expanded;
   const visibleRankings = shouldShowAll ? rankings : rankings.slice(0, ALL_RANKINGS_PREVIEW_COUNT);
 
+  if (elements.allRankingsTitle) {
+    elements.allRankingsTitle.textContent = season === 1
+      ? t("ranking.previousSeasonTitle")
+      : t("ranking.currentFullTitle");
+  }
+
   if (season === 1) {
     renderSeason1Archive(visibleRankings, getRankingSeasonConfig(1).period || t("ranking.season1ArchivePeriod"));
   } else {
@@ -340,6 +346,11 @@ function renderActiveAllRankings() {
 }
 
 async function showAllRankingsForSeason(season) {
+  const rankingsScrollBody = elements.allRankingsList?.closest(".all-rankings-body");
+  if (rankingsScrollBody) {
+    rankingsScrollBody.scrollTop = 0;
+  }
+
   if (isPlaytestActive()) {
     allRankingsModalState.season = season;
     allRankingsModalState.rankings = [];
@@ -354,6 +365,11 @@ async function showAllRankingsForSeason(season) {
   elements.allRankingsList.innerHTML = "";
   elements.allRankingsStatus.textContent = t("ranking.loading");
   elements.allRankingsStatus.hidden = false;
+  if (elements.allRankingsTitle) {
+    elements.allRankingsTitle.textContent = season === 1
+      ? t("ranking.previousSeasonTitle")
+      : t("ranking.currentFullTitle");
+  }
   setAllRankingsToggle({ visible: false, expanded: false });
 
   try {
@@ -2725,12 +2741,12 @@ function bindEvents() {
   elements.viewAllRankingsButton.addEventListener("click", () => {
     if (isPlaytestActive()) {
       openAllRankingsModal();
-      void showAllRankingsForSeason(CURRENT_SEASON);
+      void showAllRankingsForSeason(1);
       return;
     }
 
     openAllRankingsModal();
-    void showAllRankingsForSeason(CURRENT_SEASON);
+    void showAllRankingsForSeason(1);
   });
 
   elements.rankingViewAllBottomButton?.addEventListener("click", () => {

@@ -76,6 +76,9 @@ body {
 }
 
 .refresh-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: 0;
   border-radius: 999px;
   padding: 0.85rem 1.2rem;
@@ -84,12 +87,17 @@ body {
   font-weight: 800;
   cursor: pointer;
   white-space: nowrap;
+  text-decoration: none;
 }
 
 .admin-stats {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 1rem;
+}
+
+.admin-stats--compact {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .stat-card {

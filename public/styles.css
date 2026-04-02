@@ -1756,6 +1756,12 @@ img {
   align-content: start;
 }
 
+#allRankingsModal .modal-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 .auth-modal-card {
   width: min(100%, 28rem);
 }
@@ -2325,16 +2331,30 @@ img {
 .all-rankings-footer {
   display: flex;
   justify-content: center;
-  position: sticky;
-  bottom: 0;
   padding-top: 0.15rem;
   padding-bottom: calc(0.2rem + env(safe-area-inset-bottom));
   background: linear-gradient(180deg, rgba(255, 248, 240, 0), rgba(255, 248, 240, 0.96) 38%, rgba(255, 248, 240, 0.98) 100%);
   z-index: 1;
+  flex-shrink: 0;
 }
 
 .all-rankings-toggle {
   min-width: min(100%, 15rem);
+}
+
+.all-rankings-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  gap: 0.7rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+#allRankingsModal .ranking-list {
+  min-height: 0;
+  padding-bottom: 0.2rem;
 }
 
 .modal-head {
@@ -2464,6 +2484,10 @@ img {
     max-height: calc(100dvh - 6.7rem - env(safe-area-inset-bottom));
     border-radius: 1.45rem 1.45rem 0 0;
     padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+  }
+
+  #allRankingsModal .modal-card {
+    height: calc(100dvh - 6.7rem - env(safe-area-inset-bottom));
   }
 
   #profileModal .modal-head .ghost-button--small,

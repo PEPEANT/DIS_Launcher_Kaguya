@@ -18,6 +18,7 @@
         </div>
         <div class="admin-header-actions">
           <p class="admin-updated">갱신: <span id="lastUpdated">-</span></p>
+          <a href="./payouts.html" class="refresh-button refresh-button--secondary">지급 완료 내역</a>
           <button id="refreshButton" type="button" class="refresh-button">새로고침</button>
         </div>
       </header>
@@ -99,8 +100,8 @@
           <div class="admin-ops-stack">
             <form id="walletAdjustForm" class="admin-form-grid admin-form-grid--compact">
               <label class="admin-field">
-                <span>대상 UID</span>
-                <input id="walletAdjustUid" type="text" placeholder="uid">
+                <span>대상 UID 또는 playerId</span>
+                <input id="walletAdjustUid" type="text" placeholder="uid 또는 playerId">
               </label>
               <label class="admin-field">
                 <span>증감값</span>
@@ -125,8 +126,8 @@
 
             <form id="sendMessageForm" class="admin-form-grid admin-form-grid--compact">
               <label class="admin-field">
-                <span>대상 UID</span>
-                <input id="sendMessageUid" type="text" placeholder="uid">
+                <span>대상 UID 또는 playerId</span>
+                <input id="sendMessageUid" type="text" placeholder="uid 또는 playerId">
               </label>
               <label class="admin-field">
                 <span>메시지 ID</span>
@@ -147,8 +148,8 @@
 
             <form id="deleteMessageForm" class="admin-form-grid admin-form-grid--compact">
               <label class="admin-field">
-                <span>대상 UID</span>
-                <input id="deleteMessageUid" type="text" placeholder="uid">
+                <span>대상 UID 또는 playerId</span>
+                <input id="deleteMessageUid" type="text" placeholder="uid 또는 playerId">
               </label>
               <label class="admin-field">
                 <span>메시지 ID</span>

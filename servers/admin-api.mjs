@@ -1,5 +1,6 @@
 import { runSeasonPayout } from "../scripts/admin-season-payout.mjs";
 import { runAdminUserAction } from "../scripts/admin-user-actions.mjs";
+import { firestoreFieldsToJs, listDocuments, readDocument } from "../scripts/admin-firestore-utils.mjs";
 import { sendJson } from "./shared/http.mjs";
 
 const DEFAULT_FIREBASE_API_KEY = "AIzaSyCVk-H_DkZfbo_KaEg9C3Kq1ij4ziHmW6M";
@@ -136,6 +137,101 @@ function sanitizeUserActionOptions(payload = {}, actor = "") {
   };
 }
 
+function normalizeSeasonNumber(value, fallback = 1) {
+  const season = Math.floor(Number(value) || fallback);
+  return Number.isFinite(season) && season >= 1 ? season : fallback;
+}
+
+function normalizeNonNegativeInt(value, fallback = 0) {
+  const safeValue = Math.floor(Number(value) || fallback);
+  return Number.isFinite(safeValue) && safeValue >= 0 ? safeValue : fallback;
+}
+
+function normalizeNickname(...values) {
+  for (const value of values) {
+    const safeValue = String(value || "").trim();
+    if (safeValue) {
+      return safeValue;
+    }
+  }
+
+  return "이름 없음";
+}
+
+function comparePayoutRecipients(left, right) {
+  const leftTime = new Date(left.rewardedAt || 0).getTime();
+  const rightTime = new Date(right.rewardedAt || 0).getTime();
+  if (leftTime !== rightTime) {
+    return rightTime - leftTime;
+  }
+
+  const leftRank = Number(left.rank) || 0;
+  const rightRank = Number(right.rank) || 0;
+  if (leftRank !== rightRank) {
+    return leftRank - rightRank;
+  }
+
+  return String(left.nickname || "").localeCompare(String(right.nickname || ""), "ko");
+}
+
+async function listSeasonPayoutRecipients(payload = {}) {
+  const season = normalizeSeasonNumber(payload.season, 1);
+  const seasonLabel = String(payload.seasonLabel || "").trim() || (season === 1 ? "시즌 0" : `시즌 ${season - 1}`);
+  const limit = normalizeNonNegativeInt(payload.limit, 200);
+  const userDocuments = await listDocuments("users");
+  const recipients = [];
+
+  await Promise.allSettled(userDocuments.map(async (document) => {
+    const userData = firestoreFieldsToJs(document.fields || {});
+    const uid = String(userData.uid || "").trim() || String(document.name || "").split("/").pop() || "";
+    if (!uid) {
+      return;
+    }
+
+    const seasonDoc = await readDocument(`users/${uid}/seasons/${season}`);
+    if (!seasonDoc.exists) {
+      return;
+    }
+
+    const seasonData = seasonDoc.data || {};
+    const rewardedAt = String(seasonData.adminRewardedAt || "").trim();
+    if (!rewardedAt) {
+      return;
+    }
+
+    recipients.push({
+      uid,
+      playerId: String(seasonData.playerId || userData.lastSeenPlayerId || "").trim(),
+      nickname: normalizeNickname(
+        userData.currentNickname,
+        userData.displayName,
+        userData.lastNickname,
+        seasonData.lastNickname
+      ),
+      rank: normalizeNonNegativeInt(seasonData.lastRank, 0),
+      score: normalizeNonNegativeInt(seasonData.lastScore, 0),
+      rewardAmount: normalizeNonNegativeInt(seasonData.adminRewardAmount, 0),
+      rewardedAt,
+      messageId: String(seasonData.adminRewardMessageId || "").trim(),
+      currentBalance: normalizeNonNegativeInt(userData.hujupayBalance, 0)
+    });
+  }));
+
+  recipients.sort(comparePayoutRecipients);
+
+  const visibleRecipients = limit > 0 ? recipients.slice(0, limit) : recipients;
+  const lastRewardedAt = recipients[0]?.rewardedAt || "";
+
+  return {
+    season,
+    seasonLabel,
+    totalRecipients: recipients.length,
+    totalRewardedAmount: recipients.reduce((sum, entry) => sum + (Number(entry.rewardAmount) || 0), 0),
+    lastRewardedAt,
+    recipients: visibleRecipients
+  };
+}
+
 export async function handleAdminApiRequest(request, response, requestUrl) {
   if (request.method !== "POST") {
     sendJson(response, 405, { ok: false, error: "Method not allowed." });
@@ -161,6 +257,9 @@ export async function handleAdminApiRequest(request, response, requestUrl) {
           ...sanitizePayoutOptions(payload),
           apply: true
         });
+        break;
+      case "season-payout-report":
+        result = await listSeasonPayoutRecipients(payload);
         break;
       case "send-message":
         result = await runAdminUserAction("send-message", sanitizeUserActionOptions(payload, adminUser.email || adminUser.uid));

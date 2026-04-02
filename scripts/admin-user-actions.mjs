@@ -3,12 +3,16 @@ import {
   buildPatchWrite,
   commitWrites,
   createActionId,
+  firestoreFieldsToJs,
   getDefaultActor,
+  listDocuments,
   readDocument,
   refreshFirebaseTokenCache,
   writeSummaryFile
 } from "./admin-firestore-utils.mjs";
 import { fileURLToPath } from "node:url";
+
+const userLinkIndex = new Map();
 
 function isDirectRun(moduleUrl) {
   return process.argv[1] && process.argv[1] === fileURLToPath(moduleUrl);
@@ -24,7 +28,7 @@ function printHelp() {
   console.log("");
   console.log("Common:");
   console.log("  --apply                  Apply the action. Default is dry-run.");
-  console.log("  --uid <uid>              Target user uid.");
+  console.log("  --uid <uid|playerId>     Target user uid or linked playerId.");
   console.log("  --actor <name>           Actor label saved to adminLogs.");
   console.log("");
   console.log("send-message:");
@@ -105,6 +109,62 @@ function requireMessageId(value) {
   }
 
   return safeValue;
+}
+
+function collectPlayerIdsFromUserDoc(data = {}) {
+  const candidates = [
+    data.firstLinkedPlayerId,
+    data.lastSeenPlayerId,
+    ...(Array.isArray(data.linkedPlayerIds) ? data.linkedPlayerIds : [])
+  ];
+
+  return [...new Set(
+    candidates
+      .map((value) => String(value || "").trim())
+      .filter(Boolean)
+  )];
+}
+
+async function buildUserLinkIndex() {
+  userLinkIndex.clear();
+
+  const userDocs = await listDocuments("users");
+  for (const document of userDocs) {
+    const data = firestoreFieldsToJs(document.fields || {});
+    const uid = String(data.uid || "").trim() || String(document.name || "").split("/").pop() || "";
+    if (!uid) {
+      continue;
+    }
+
+    for (const playerId of collectPlayerIdsFromUserDoc(data)) {
+      if (!userLinkIndex.has(playerId)) {
+        userLinkIndex.set(playerId, uid);
+      }
+    }
+  }
+}
+
+async function resolveAccountUid(rawTarget) {
+  const safeTarget = normalizeUid(rawTarget);
+  if (!safeTarget) {
+    return "";
+  }
+
+  const directUserDoc = await readDocument(`users/${safeTarget}`);
+  if (directUserDoc.exists) {
+    return safeTarget;
+  }
+
+  if (!userLinkIndex.size) {
+    await buildUserLinkIndex();
+  }
+
+  if (userLinkIndex.has(safeTarget)) {
+    return userLinkIndex.get(safeTarget) || "";
+  }
+
+  const identityLink = await readDocument(`identityLinks/${safeTarget}`);
+  return String(identityLink.data?.uid || "").trim();
 }
 
 function parseArgs(argv = process.argv.slice(2)) {
@@ -267,10 +327,15 @@ function buildLogPayload({
 }
 
 export async function runSendMessage(options) {
-  const uid = normalizeUid(options.uid);
-  ensureRequired(uid, "uid");
+  const targetAccount = normalizeUid(options.uid);
+  ensureRequired(targetAccount, "uid or playerId");
   ensureRequired(options.title, "title");
   ensureRequired(options.body, "body");
+
+  const uid = await resolveAccountUid(targetAccount);
+  if (!uid) {
+    throw new Error(`No linked user account found for ${targetAccount}.`);
+  }
 
   const userDoc = await readDocument(`users/${uid}`);
   if (!userDoc.exists) {
@@ -338,13 +403,18 @@ export async function runSendMessage(options) {
 }
 
 export async function runAdjustWallet(options) {
-  const uid = normalizeUid(options.uid);
+  const targetAccount = normalizeUid(options.uid);
   const delta = normalizeInt(options.delta, 0);
-  ensureRequired(uid, "uid");
+  ensureRequired(targetAccount, "uid or playerId");
   ensureRequired(options.reason, "reason");
 
   if (!delta) {
     throw new Error("delta must not be zero.");
+  }
+
+  const uid = await resolveAccountUid(targetAccount);
+  if (!uid) {
+    throw new Error(`No linked user account found for ${targetAccount}.`);
   }
 
   const userPath = `users/${uid}`;
@@ -441,10 +511,15 @@ export async function runAdjustWallet(options) {
 }
 
 export async function runDeleteMessage(options) {
-  const uid = normalizeUid(options.uid);
-  ensureRequired(uid, "uid");
+  const targetAccount = normalizeUid(options.uid);
+  ensureRequired(targetAccount, "uid or playerId");
   ensureRequired(options.messageId, "message-id");
   const messageId = requireMessageId(options.messageId);
+
+  const uid = await resolveAccountUid(targetAccount);
+  if (!uid) {
+    throw new Error(`No linked user account found for ${targetAccount}.`);
+  }
 
   const nowIso = new Date().toISOString();
   const actionId = createActionId("admin_delete_message");

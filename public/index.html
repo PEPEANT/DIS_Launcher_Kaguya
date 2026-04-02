@@ -447,7 +447,7 @@
     <div class="modal-overlay" id="allRankingsModal" hidden>
       <div class="modal-card">
         <div class="modal-head">
-          <h2 data-i18n="ranking.allTitle">All Rankings</h2>
+          <h2 id="allRankingsTitle" data-i18n="ranking.allTitle">All Rankings</h2>
           <button id="closeAllRankingsButton" type="button" class="ghost-button ghost-button--small" data-i18n="ranking.close">Close</button>
         </div>
         <div class="season-tabs">
@@ -460,8 +460,10 @@
             <span class="season-tab-pill season-tab-pill--ended" data-i18n="ranking.seasonEnded">Ended</span>
           </button>
         </div>
-        <p class="ranking-status" id="allRankingsStatus" data-i18n="ranking.loading">Loading...</p>
-        <ol class="ranking-list" id="allRankingsList"></ol>
+        <div class="all-rankings-body">
+          <p class="ranking-status" id="allRankingsStatus" data-i18n="ranking.loading">Loading...</p>
+          <ol class="ranking-list" id="allRankingsList"></ol>
+        </div>
         <div class="all-rankings-footer" id="allRankingsFooter" hidden>
           <button id="toggleAllRankingsButton" type="button" class="ghost-button ghost-button--small all-rankings-toggle" data-i18n="ranking.expandAll">Show 11th and below</button>
         </div>

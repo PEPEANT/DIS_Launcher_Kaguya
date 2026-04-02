@@ -67,6 +67,7 @@ export const elements = {
   viewAllRankingsButton: document.getElementById("viewAllRankingsButton"),
   rankingViewAllBottomButton: document.getElementById("rankingViewAllBottomButton"),
   allRankingsModal: document.getElementById("allRankingsModal"),
+  allRankingsTitle: document.getElementById("allRankingsTitle"),
   closeAllRankingsButton: document.getElementById("closeAllRankingsButton"),
   allRankingsStatus: document.getElementById("allRankingsStatus"),
   allRankingsList: document.getElementById("allRankingsList"),
