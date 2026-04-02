@@ -6,6 +6,10 @@ export function isPortraitTouchViewport() {
   return isTouchDevice() && window.matchMedia("(orientation: portrait)").matches;
 }
 
+export function isLandscapeTouchViewport() {
+  return isTouchDevice() && window.matchMedia("(orientation: landscape)").matches;
+}
+
 export async function requestLandscapePresentation(target) {
   if (target?.requestFullscreen && !document.fullscreenElement) {
     try {

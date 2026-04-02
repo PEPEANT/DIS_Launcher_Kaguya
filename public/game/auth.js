@@ -62,7 +62,10 @@ function normalizeAuthUser(user) {
 
 async function ensurePersistenceReady() {
   if (!persistenceReadyPromise) {
-    persistenceReadyPromise = setPersistence(getFirebaseAuth(), browserLocalPersistence).catch(() => undefined);
+    persistenceReadyPromise = setPersistence(getFirebaseAuth(), browserLocalPersistence).catch((error) => {
+      console.warn("Failed to enable browserLocalPersistence for Firebase Auth.", error);
+      return undefined;
+    });
   }
 
   await persistenceReadyPromise;

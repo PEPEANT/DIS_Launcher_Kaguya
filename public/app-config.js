@@ -6,7 +6,7 @@ const rankingSeasons = Object.freeze({
       kind: "season",
       displayName: "시즌 1",
       status: "current",
-      period: "2026.04.01 - 2026.05.01",
+      period: "2026.04.01 ~ 2026.05.01",
       firebaseCollection: "rankings_season2"
     }),
     Object.freeze({
@@ -20,12 +20,29 @@ const rankingSeasons = Object.freeze({
   ])
 });
 
+const gameContent = Object.freeze({
+  currentSeasonId: "s2",
+  seasons: Object.freeze([
+    Object.freeze({
+      id: "s1",
+      displayName: "시즌 1",
+      notes: "Current live gameplay snapshot"
+    }),
+    Object.freeze({
+      id: "s2",
+      displayName: "시즌 2",
+      notes: "Upcoming gameplay workspace"
+    })
+  ])
+});
+
 window.__APP_CONFIG__ = Object.freeze({
   rankingProvider: "firebase",
   rankingApiBaseUrl: `${window.location.protocol}//${window.location.hostname}:4000`,
   assetBaseUrl: "",
   processedAssetBaseUrl: "/processed-assets",
   rankingSeasons,
+  gameContent,
   adminAccess: Object.freeze({
     requiresSignIn: true,
     allowedEmails: Object.freeze([])

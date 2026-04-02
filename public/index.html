@@ -13,40 +13,36 @@
   <body class="view-intro">
     <div class="orientation-gate" id="orientationGate" hidden>
       <div class="orientation-card">
-        <p class="orientation-eyebrow" data-i18n="orientation.eyebrow">Landscape</p>
-        <h1 data-i18n="orientation.title">Rotate Your Device</h1>
-        <p data-i18n="orientation.body">On mobile, the game only plays in landscape mode.</p>
+        <p id="orientationEyebrow" class="orientation-eyebrow" data-i18n="orientation.eyebrow">Landscape</p>
+        <h1 id="orientationTitle" data-i18n="orientation.title">Rotate Your Device</h1>
+        <p id="orientationBody" data-i18n="orientation.body">On mobile, the game only plays in landscape mode.</p>
       </div>
     </div>
 
     <main class="app-shell">
       <section class="intro-screen" id="introScreen">
+        <img
+          src="./processed-assets/special/thumbnail_mobile.png"
+          class="intro-mobile-figure"
+          alt=""
+          aria-hidden="true"
+        >
         <div class="intro-card">
-          <div class="lang-switcher">
+          <form id="introForm" class="intro-start-form">
+            <button id="introStartButton" type="submit" data-i18n="intro.guestStart">Play</button>
+          </form>
+
+          <div id="introAuthActions" class="intro-auth-actions">
+            <button id="introLoginButton" type="button" class="intro-auth-btn" data-i18n="auth.login">Login</button>
+          </div>
+
+          <div class="lang-switcher intro-lang-switcher">
             <button class="lang-btn lang-btn--active" data-lang="ko" type="button">KO</button>
             <button class="lang-btn" data-lang="ja" type="button">JP</button>
             <button class="lang-btn" data-lang="en" type="button">EN</button>
           </div>
 
-          <div class="intro-hero">
-            <div class="intro-copy">
-              <p class="lobby-eyebrow" data-i18n="app.brand">Kaguya</p>
-              <h1 class="intro-title" data-i18n="app.name">Snack Rush</h1>
-              <form id="introForm" class="start-form intro-start-form">
-                <button id="introStartButton" type="submit" data-i18n="intro.guestStart">Start as Guest</button>
-              </form>
-              <div id="introAuthActions" class="intro-auth-actions">
-                <button id="introLoginButton" type="button" class="ghost-button" data-i18n="auth.login">Login</button>
-                <button id="introSignupButton" type="button" class="ghost-button" data-i18n="auth.signup">Sign Up</button>
-              </div>
-              <p id="introAuthHint" class="intro-auth-hint" data-i18n="auth.optionalHint">Play as a guest first, then log in later to link your records.</p>
-              <p id="introAuthState" class="intro-auth-state" hidden></p>
-            </div>
-          </div>
-        </div>
-
-        <div class="intro-side-figure" aria-hidden="true">
-          <img class="intro-figure" src="./processed-assets/special/intro_figure.png" alt="">
+          <p id="introAuthState" class="intro-auth-state" hidden></p>
         </div>
       </section>
 
@@ -62,124 +58,99 @@
         <section class="lobby-hero">
           <div class="lobby-copy">
             <div class="lobby-mobile-actions">
-              <button id="openGuideButton" type="button" class="ghost-button lobby-mobile-button" data-i18n="lobby.mobileGuide">Items</button>
+              <button id="openGuideButton" type="button" class="ghost-button lobby-mobile-button" data-i18n="lobby.openGuide">설명</button>
               <button id="openRankingButton" type="button" class="ghost-button lobby-mobile-button" data-i18n="lobby.mobileRanking">Ranking</button>
             </div>
 
-            <div class="lobby-player-info">
-              <strong id="lobbyNicknameDisplay" class="lobby-player-name"></strong>
-              <span class="lobby-player-rank-row">
-                <span class="lobby-player-rank-label" data-i18n="lobby.rankLabel">Rank</span>
-                <strong id="lobbyRankDisplay" class="lobby-player-rank">-</strong>
-              </span>
+            <div class="lobby-player-row">
+              <div class="lobby-player-info">
+                <div class="lobby-player-heading">
+                  <strong id="lobbyNicknameDisplay" class="lobby-player-name"></strong>
+                  <strong id="lobbyRankDisplay" class="lobby-player-rank">-</strong>
+                  <span id="hujupayCard" class="lobby-player-wallet-inline" hidden>
+                    <strong id="hujupayBalanceDisplay" class="lobby-player-wallet-value">0</strong>
+                    <img src="/processed-assets/item/Fuju.png" alt="" class="wallet-coin-icon wallet-coin-icon--inline" aria-hidden="true">
+                  </span>
+                </div>
+                <section class="lobby-wallet-card" hidden aria-hidden="true">
+                  <span class="lobby-wallet-label" data-i18n="wallet.title">?꾩??섏씠</span>
+                  <span class="wallet-inline-value">
+                    <strong class="lobby-wallet-value">0</strong>
+                    <img src="/processed-assets/item/Fuju.png" alt="" class="wallet-coin-icon" aria-hidden="true">
+                  </span>
+                </section>
+              </div>
+              <div class="lobby-player-side">
+                <section class="lobby-wallet-card" hidden aria-hidden="true">
+                  <span class="lobby-wallet-label" data-i18n="wallet.title">후쥬페이</span>
+                  <span class="wallet-inline-value">
+                    <strong class="lobby-wallet-value">0</strong>
+                    <img src="/processed-assets/item/Fuju.png" alt="" class="wallet-coin-icon" aria-hidden="true">
+                  </span>
+                </section>
+                <button id="profileInfoButton" type="button" class="ghost-button ghost-button--small lobby-profile-button" data-i18n="profile.open" hidden>My Info</button>
+              </div>
             </div>
 
-            <section class="account-card" id="accountCard" hidden>
+            <section class="account-card" id="accountCard" hidden aria-hidden="true">
               <div class="account-card-head">
                 <span id="authModeBadge" class="account-badge account-badge--guest" data-i18n="auth.guestBadge">Guest</span>
-                <div class="account-head-actions">
-                  <button id="profileInfoButton" type="button" class="ghost-button ghost-button--small" data-i18n="profile.open" hidden>My Info</button>
-                  <button id="authLogoutButton" type="button" class="ghost-button ghost-button--small" data-i18n="auth.logout" hidden>Log Out</button>
-                </div>
               </div>
               <strong id="authDisplayName" class="account-display" data-i18n="auth.guestTitle">Playing as Guest</strong>
               <p id="authSummaryText" class="account-summary-text"></p>
-              <div id="authGuestActions" class="account-actions" hidden>
-                <button id="lobbySignupButton" type="button" class="ghost-button" data-i18n="auth.signup">Sign Up</button>
-              </div>
             </section>
 
             <input id="nicknameInput" name="nickname" type="text" maxlength="12" autocomplete="nickname" hidden>
-            <form id="startForm">
-              <button id="startButton" type="submit" class="solid-button lobby-start-btn" disabled data-i18n="lobby.start">Start Game</button>
-            </form>
+            <section class="lobby-feature-card" aria-label="Snack Rush Hero">
+              <div class="lobby-feature-visual">
+                <img src="/scene/1.jpg" alt="Snack Rush Preview" class="lobby-feature-image">
+                <div class="lobby-feature-overlay">
+                  <span class="lobby-feature-tag" data-i18n="lobby.heroEyebrow">Snack Rush</span>
+                  <strong class="lobby-feature-title" data-i18n="lobby.heroTitle">스낵러시</strong>
+                </div>
+              </div>
+              <form id="startForm" class="lobby-feature-actions">
+                <button id="startButton" type="submit" class="solid-button lobby-start-btn" disabled data-i18n="lobby.start">Start Game</button>
+                <button id="heroGuideButton" type="button" class="ghost-button lobby-guide-launch" data-i18n="lobby.openGuide">설명</button>
+              </form>
+            </section>
           </div>
         </section>
 
         <section class="lobby-panels">
-          <section class="guide-panel">
+          <section class="shop-panel lobby-chat-panel">
             <div class="section-head">
               <div class="section-head-main">
-                <button id="guideBackButton" type="button" class="panel-back-button" data-i18n="lobby.mobileBack">Back</button>
-                <h2 data-i18n="guide.title">Items</h2>
+                <button id="shopBackButton" type="button" class="panel-back-button" data-i18n="lobby.mobileBack">Back</button>
+                <h2 data-i18n="chat.title">로비 채팅</h2>
               </div>
-              <p data-i18n="guide.lead">Grab snacks and avoid traps.</p>
+              <span class="chat-live-badge" data-i18n="chat.liveBadge">LIVE</span>
             </div>
 
-            <div class="guide-columns">
-              <div class="guide-group">
-                <h3 data-i18n="guide.group.snack">Snacks</h3>
-                <div class="guide-cards">
-                  <article class="guide-card">
-                    <img class="guide-thumb" data-guide-item="snack2" alt="Snack 2">
-                    <strong data-i18n="item.snack2">Strawberry Pancake</strong>
-                    <span class="guide-points">+32</span>
-                  </article>
-                  <article class="guide-card">
-                    <img class="guide-thumb" data-guide-item="snack3" alt="Snack 3">
-                    <strong data-i18n="item.snack3">Fried Rice</strong>
-                    <span class="guide-points">+26</span>
-                  </article>
-                  <article class="guide-card">
-                    <img class="guide-thumb" data-guide-item="snack5" alt="Snack 5">
-                    <strong data-i18n="item.snack5">Omurice</strong>
-                    <span class="guide-points">+24</span>
-                  </article>
-                  <article class="guide-card">
-                    <img class="guide-thumb" data-guide-item="snack1" alt="Snack 1">
-                    <strong data-i18n="item.snack1">Strawberry Cake</strong>
-                    <span class="guide-points">+18</span>
-                  </article>
-                  <article class="guide-card">
-                    <img class="guide-thumb" data-guide-item="snack4" alt="Snack 4">
-                    <strong data-i18n="item.snack4">Blue Soda</strong>
-                    <span class="guide-points">+14</span>
-                  </article>
-                </div>
-              </div>
+            <p class="chat-panel-lead" data-i18n="chat.lead">로그인 유저끼리만 한 줄 채팅을 주고받을 수 있어요.</p>
 
-              <div class="guide-group guide-group--special">
-                <h3 data-i18n="guide.group.special">Special</h3>
-                <div class="guide-cards">
-                  <article class="guide-card">
-                    <img class="guide-thumb" data-guide-item="special1" alt="Special 1">
-                    <strong data-i18n="item.special1">Full Moon</strong>
-                    <span class="guide-points guide-points--special" data-i18n="item.special1.effect">+20s</span>
-                  </article>
-                  <article class="guide-card">
-                    <img class="guide-thumb" data-guide-item="heal1" alt="Special 2">
-                    <strong data-i18n="item.heal1">Yachiyo Doll</strong>
-                    <span class="guide-points guide-points--special" data-i18n="item.heal1.effect">+1HP</span>
-                  </article>
-                  <article class="guide-card">
-                    <img class="guide-thumb" data-guide-item="iroha" alt="Iroha">
-                    <strong data-i18n="item.iroha">Iroha</strong>
-                    <span class="guide-points guide-points--iroha">+50</span>
-                  </article>
-                </div>
-              </div>
-
-              <div class="guide-group guide-group--danger">
-                <h3 data-i18n="guide.group.trap">Traps</h3>
-                <div class="guide-cards">
-                  <article class="guide-card">
-                    <img class="guide-thumb" data-guide-item="danger1" alt="Trap 1">
-                    <strong data-i18n="item.danger1">Moon Agent</strong>
-                    <span class="guide-points guide-points--danger">-32</span>
-                  </article>
-                  <article class="guide-card">
-                    <img class="guide-thumb" data-guide-item="danger3" alt="Trap 3">
-                    <strong data-i18n="item.danger3">Mikado</strong>
-                    <span class="guide-points guide-points--danger">-26</span>
-                  </article>
-                  <article class="guide-card">
-                    <img class="guide-thumb" data-guide-item="danger2" alt="Trap 2">
-                    <strong data-i18n="item.danger2">Watery Pancake</strong>
-                    <span class="guide-points guide-points--danger">-20</span>
-                  </article>
-                </div>
-              </div>
+            <div id="chatGuestGate" class="chat-guest-gate" hidden>
+              <p data-i18n="chat.guestHint">채팅을 쓰려면 로그인해 주세요.</p>
+              <button id="chatLoginButton" type="button" class="ghost-button ghost-button--small" data-i18n="auth.login">Login</button>
             </div>
+
+            <p id="chatStatus" class="chat-status" hidden></p>
+
+            <ol id="chatMessageList" class="chat-message-list"></ol>
+
+            <form id="chatForm" class="chat-composer">
+              <input
+                id="chatInput"
+                type="text"
+                maxlength="60"
+                autocomplete="off"
+                spellcheck="false"
+                data-i18n="chat.placeholder"
+                data-i18n-attr="placeholder"
+                placeholder="메세지를 입력하세요"
+              >
+              <button id="chatSendButton" type="submit" class="solid-button" data-i18n="chat.send">보내기</button>
+            </form>
           </section>
 
           <section class="ranking-card">
@@ -194,10 +165,26 @@
                 <button id="refreshRankingButton" type="button" class="ghost-button ghost-button--small" data-i18n="ranking.refresh">Refresh</button>
               </div>
             </div>
+            <section id="rankingSelfCard" class="ranking-self-card">
+              <div class="ranking-self-copy">
+                <span class="ranking-self-label" data-i18n="ranking.myTitle">내 순위</span>
+                <strong id="rankingSelfName" class="ranking-self-name">-</strong>
+              </div>
+              <strong id="rankingSelfRank" class="ranking-self-rank">-</strong>
+            </section>
             <p class="ranking-status" id="rankingStatus" data-i18n="ranking.loading">Loading...</p>
             <ol class="ranking-list" id="rankingList"></ol>
+            <button id="rankingViewAllBottomButton" type="button" class="ghost-button ghost-button--small ranking-view-all-bottom" data-i18n="ranking.viewMore">11위 이하 보기</button>
           </section>
         </section>
+
+        <nav class="lobby-bottom-nav" aria-label="Mobile navigation">
+          <button id="mobileHomeButton" type="button" class="mobile-nav-button mobile-nav-button--active" data-mobile-nav="home" data-i18n="mobileNav.home">Home</button>
+          <button id="mobileShopButton" type="button" class="mobile-nav-button" data-mobile-nav="shop" data-i18n="mobileNav.shop">상점</button>
+          <button id="mobileRankingButton" type="button" class="mobile-nav-button" data-mobile-nav="ranking" data-i18n="mobileNav.ranking">Ranking</button>
+          <button id="mobileAccountButton" type="button" class="mobile-nav-button" data-mobile-nav="account" data-i18n="mobileNav.account">Account</button>
+          <button id="mobileSettingsButton" type="button" class="mobile-nav-button" data-mobile-nav="settings" data-i18n="mobileNav.settings">Settings</button>
+        </nav>
       </section>
 
       <section class="game-screen" id="gameScreen" hidden>
@@ -241,7 +228,27 @@
                 <button id="moveLeftButton" type="button" class="mobile-button" data-i18n="mobile.left">&lt;</button>
                 <button id="moveRightButton" type="button" class="mobile-button" data-i18n="mobile.right">&gt;</button>
               </div>
-              <button id="jumpButton" type="button" class="mobile-button mobile-button--jump" data-i18n="mobile.jump">^</button>
+              <div class="mobile-action-pad">
+                <button id="jumpButton" type="button" class="mobile-button mobile-button--jump" aria-label="Jump">
+                  <span class="mobile-button-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" focusable="false">
+                      <path d="M12 18V6"></path>
+                      <path d="M7.5 10.5 12 6l4.5 4.5"></path>
+                      <path d="M6 19.5h12"></path>
+                    </svg>
+                  </span>
+                </button>
+                <button id="duckButton" type="button" class="mobile-button mobile-button--slide" aria-label="Slide">
+                  <span class="mobile-button-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" focusable="false">
+                      <path d="M4 12h10"></path>
+                      <path d="M10 8l6 4-6 4"></path>
+                      <path d="M5 8h4"></path>
+                      <path d="M3 16h5"></path>
+                    </svg>
+                  </span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -254,32 +261,61 @@
           <h2 id="authModalTitle" data-i18n="auth.loginTitle">Login</h2>
           <button id="closeAuthModalButton" type="button" class="ghost-button ghost-button--small" data-i18n="ranking.close">Close</button>
         </div>
-        <div class="auth-tabs">
+        <div class="auth-tabs" hidden aria-hidden="true">
           <button id="authLoginTab" type="button" class="auth-tab auth-tab--active" data-i18n="auth.login">Login</button>
           <button id="authSignupTab" type="button" class="auth-tab" data-i18n="auth.signup">Sign Up</button>
         </div>
-        <p class="auth-caption" data-i18n="auth.optionalHint">Play as a guest first, then log in later to link your records.</p>
         <form id="authForm" class="auth-form">
           <label class="auth-field">
             <span data-i18n="auth.email">Email</span>
-            <input id="authEmailInput" name="email" type="email" autocomplete="email" required>
+            <div class="auth-email-row">
+              <input id="authEmailInput" name="email" type="email" autocomplete="email" required>
+              <select id="authEmailDomainSelect" class="auth-email-domain" aria-label="Email domain">
+                <option value="" data-i18n="auth.emailDomainAuto">직접입력</option>
+                <option value="gmail.com">gmail.com</option>
+                <option value="naver.com">naver.com</option>
+                <option value="daum.net">daum.net</option>
+                <option value="kakao.com">kakao.com</option>
+                <option value="outlook.com">outlook.com</option>
+                <option value="icloud.com">icloud.com</option>
+                <option value="yahoo.com">yahoo.com</option>
+                <option value="yahoo.co.jp">yahoo.co.jp</option>
+              </select>
+            </div>
           </label>
           <label id="authNicknameField" class="auth-field" hidden>
             <span data-i18n="auth.nickname">Nickname</span>
-            <input id="authNicknameInput" name="nickname" type="text" autocomplete="nickname" maxlength="12">
+            <div class="auth-nickname-row">
+              <input id="authNicknameInput" name="nickname" type="text" autocomplete="nickname" maxlength="12">
+              <button id="authNicknameCheckButton" type="button" class="ghost-button auth-check-button" data-i18n="auth.nicknameCheck">중복확인</button>
+            </div>
+            <p id="authNicknameStatus" class="auth-inline-status" hidden></p>
           </label>
-          <label class="auth-field">
+          <label id="authPasswordField" class="auth-field">
             <span data-i18n="auth.password">Password</span>
-            <input id="authPasswordInput" name="password" type="password" autocomplete="current-password" minlength="6" required>
+            <div class="auth-password-row">
+              <input id="authPasswordInput" name="password" type="password" autocomplete="current-password" minlength="6" required>
+              <button id="authPasswordToggleButton" type="button" class="auth-visibility-button" aria-label="Show password">
+                <span class="sr-only" data-i18n="auth.showPassword">비밀번호 보기</span>
+              </button>
+            </div>
           </label>
           <label id="authConfirmField" class="auth-field" hidden>
             <span data-i18n="auth.passwordConfirm">Confirm Password</span>
-            <input id="authConfirmInput" name="confirmPassword" type="password" autocomplete="new-password" minlength="6">
+            <div class="auth-password-row">
+              <input id="authConfirmInput" name="confirmPassword" type="password" autocomplete="new-password" minlength="6">
+              <button id="authConfirmToggleButton" type="button" class="auth-visibility-button" aria-label="Show password confirmation">
+                <span class="sr-only" data-i18n="auth.showPassword">비밀번호 보기</span>
+              </button>
+            </div>
           </label>
           <p id="authStatus" class="auth-status" hidden></p>
           <button id="authSubmitButton" type="submit" class="solid-button" data-i18n="auth.loginSubmit">Login</button>
-          <button id="authResetPasswordButton" type="button" class="ghost-button auth-reset-button" data-i18n="auth.resetPassword">Find Password</button>
-          <p class="auth-help" data-i18n="auth.resetPasswordHint">Your email is only used when you need to recover your password. We will send a reset link to the email you signed up with.</p>
+          <div id="authSwitchRow" class="auth-switch-row" data-mode="login">
+            <button id="authModeSwitchButton" type="button" class="auth-switch-button" data-i18n="auth.switchToSignupAction">Sign Up</button>
+            <button id="authResetPasswordButton" type="button" class="ghost-button auth-reset-button" data-i18n="auth.resetPassword">Find Password</button>
+          </div>
+          <p id="authHelp" class="auth-help" data-i18n="auth.resetPasswordHint">Your email is only used when you need to recover your password. We will send a reset link to the email you signed up with.</p>
         </form>
       </div>
     </div>
@@ -296,8 +332,18 @@
           <span class="account-badge account-badge--member" data-i18n="profile.linkedBadge">Linked Account</span>
           <strong id="profileAccountName" class="profile-account-name">-</strong>
           <p id="profileAccountSummary" class="profile-account-summary">-</p>
+          <section class="profile-wallet-card">
+            <span class="profile-wallet-label" data-i18n="wallet.title">후쥬페이</span>
+            <span class="wallet-inline-value wallet-inline-value--profile">
+              <strong id="profileHujupayBalance" class="profile-wallet-value">0</strong>
+              <img src="/processed-assets/item/Fuju.png" alt="" class="wallet-coin-icon wallet-coin-icon--profile" aria-hidden="true">
+            </span>
+            <p id="profileHujupaySummary" class="profile-wallet-summary">현재 시즌 점수 구간 보상으로 후쥬페이를 모을 수 있어요.</p>
+          </section>
           <div class="profile-nickname-tools">
+            <button id="profileMessagesButton" type="button" class="ghost-button ghost-button--small" data-i18n="messages.open">Message</button>
             <button id="profileNicknameEditButton" type="button" class="ghost-button ghost-button--small" data-i18n="profile.editNickname">Edit Nickname</button>
+            <button id="profileLogoutButton" type="button" class="ghost-button ghost-button--small" data-i18n="auth.logout">Log Out</button>
           </div>
           <form id="profileNicknameForm" class="profile-nickname-form" hidden>
             <label class="auth-field">
@@ -344,6 +390,51 @@
       </div>
     </div>
 
+    <div class="modal-overlay" id="messagesModal" hidden>
+      <div class="modal-card messages-modal-card">
+        <div class="modal-head">
+          <h2 data-i18n="messages.title">Message Box</h2>
+          <button id="closeMessagesModalButton" type="button" class="ghost-button ghost-button--small" data-i18n="ranking.close">Close</button>
+        </div>
+        <p id="messagesStatus" class="messages-status" hidden></p>
+        <ol id="messagesList" class="message-list"></ol>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="messageArrivalModal" hidden>
+      <div class="modal-card message-arrival-card">
+        <div class="modal-head">
+          <h2 id="messageArrivalTitle" data-i18n="messages.arrivalTitle">New Message</h2>
+        </div>
+        <p id="messageArrivalBody" class="message-arrival-body">A reward message has arrived. Please check your inbox in the lobby.</p>
+        <div class="message-arrival-actions">
+          <button id="messageArrivalConfirmButton" type="button" class="solid-button" data-i18n="messages.arrivalConfirm">Check</button>
+          <button id="messageArrivalCloseButton" type="button" class="ghost-button" data-i18n="messages.arrivalClose">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="settingsModal" hidden>
+      <div class="modal-card settings-modal-card">
+        <div class="modal-head">
+          <h2 data-i18n="settings.title">Settings</h2>
+          <button id="closeSettingsModalButton" type="button" class="ghost-button ghost-button--small" data-i18n="ranking.close">Close</button>
+        </div>
+        <section class="settings-group">
+          <h3 data-i18n="settings.languageTitle">Language</h3>
+          <div class="settings-lang-row">
+            <button class="lang-btn settings-lang-btn" data-lang="ko" type="button">KO</button>
+            <button class="lang-btn settings-lang-btn" data-lang="ja" type="button">JP</button>
+            <button class="lang-btn settings-lang-btn" data-lang="en" type="button">EN</button>
+          </div>
+        </section>
+        <section class="settings-group">
+          <h3 data-i18n="settings.audioTitle">Audio</h3>
+          <button id="settingsMusicToggleButton" type="button" class="ghost-button settings-audio-button" data-i18n="audio.off">Music Off</button>
+        </section>
+      </div>
+    </div>
+
     <div class="modal-overlay" id="allRankingsModal" hidden>
       <div class="modal-card">
         <div class="modal-head">
@@ -368,7 +459,191 @@
       </div>
     </div>
 
+    <div class="modal-overlay" id="guideModal" hidden>
+      <div class="modal-card guide-modal-card">
+        <div class="modal-head">
+          <h2 data-i18n="guide.title">Items</h2>
+          <button id="closeGuideModalButton" type="button" class="ghost-button ghost-button--small" data-i18n="ranking.close">Close</button>
+        </div>
+        <p data-i18n="guide.lead">Grab snacks and avoid traps.</p>
+        <section class="guide-stage-strip" aria-labelledby="guideStageTitle">
+          <div class="guide-stage-strip-head">
+            <h3 id="guideStageTitle" data-i18n="guide.group.stage">Stage Shift</h3>
+            <p class="guide-stage-note" data-i18n="guide.stage.note">Maps fade in gently, and each score milestone bonus is applied once.</p>
+          </div>
+          <div class="guide-stage-tabs">
+            <article class="guide-stage-tab">
+              <strong data-i18n="guide.stage.2.score">25s / Round 2</strong>
+              <span class="guide-stage-copy">
+                <span data-i18n="guide.stage.2.desc">Map 2 fades in</span>
+                <span class="guide-stage-bonus" data-i18n="guide.stage.2.bonus">+5s</span>
+              </span>
+            </article>
+            <article class="guide-stage-tab">
+              <strong data-i18n="guide.stage.3.score">50s / Round 3</strong>
+              <span class="guide-stage-copy">
+                <span data-i18n="guide.stage.3.desc">Map 3 fades in</span>
+                <span class="guide-stage-bonus" data-i18n="guide.stage.3.bonus">+6s</span>
+              </span>
+            </article>
+            <article class="guide-stage-tab">
+              <strong data-i18n="guide.stage.4.score">70s / Round 4</strong>
+              <span class="guide-stage-copy">
+                <span data-i18n="guide.stage.4.desc">Map 4 fades in</span>
+                <span class="guide-stage-bonus" data-i18n="guide.stage.4.bonus">+8s</span>
+              </span>
+            </article>
+            <article class="guide-stage-tab">
+              <strong data-i18n="guide.stage.5.score">Reach 5,200</strong>
+              <span class="guide-stage-copy">
+                <span data-i18n="guide.stage.5.desc">Map 5 fades in</span>
+                <span class="guide-stage-bonus" data-i18n="guide.stage.5.bonus">+8s</span>
+              </span>
+            </article>
+            <article class="guide-stage-tab">
+              <strong data-i18n="guide.stage.6.score">Reach 8,000</strong>
+              <span class="guide-stage-copy">
+                <span data-i18n="guide.stage.6.desc">Late rush bonus</span>
+                <span class="guide-stage-bonus" data-i18n="guide.stage.6.bonus">+10s</span>
+              </span>
+            </article>
+            <article class="guide-stage-tab">
+              <strong data-i18n="guide.stage.7.score">Reach 10,000</strong>
+              <span class="guide-stage-copy">
+                <span data-i18n="guide.stage.7.desc">Map 6 and final boss prep</span>
+                <span class="guide-stage-bonus" data-i18n="guide.stage.7.bonus">+15s / Min 60s</span>
+              </span>
+            </article>
+          </div>
+        </section>
+        <div class="guide-columns">
+          <div class="guide-group">
+            <h3 data-i18n="guide.group.snack">Snacks</h3>
+            <div class="guide-cards">
+                  <article class="guide-card">
+                    <img class="guide-thumb" data-guide-item="snack6" alt="Snack 6">
+                    <strong data-i18n="item.snack6">Hamburg Steak</strong>
+                    <span class="guide-points">+40</span>
+                  </article>
+                  <article class="guide-card">
+                    <img class="guide-thumb" data-guide-item="snack7" alt="Snack 7">
+                    <strong data-i18n="item.snack7">Moon Parfait</strong>
+                    <span class="guide-points">+34</span>
+                  </article>
+                  <article class="guide-card">
+                    <img class="guide-thumb" data-guide-item="snack2" alt="Snack 2">
+                    <strong data-i18n="item.snack2">Strawberry Pancake</strong>
+                    <span class="guide-points">+32</span>
+              </article>
+              <article class="guide-card">
+                <img class="guide-thumb" data-guide-item="snack3" alt="Snack 3">
+                <strong data-i18n="item.snack3">Fried Rice</strong>
+                <span class="guide-points">+26</span>
+              </article>
+              <article class="guide-card">
+                <img class="guide-thumb" data-guide-item="snack5" alt="Snack 5">
+                <strong data-i18n="item.snack5">Omurice</strong>
+                <span class="guide-points">+24</span>
+              </article>
+              <article class="guide-card">
+                <img class="guide-thumb" data-guide-item="snack8" alt="Snack 8">
+                <strong data-i18n="item.snack8">Egg Porridge</strong>
+                <span class="guide-points">+22</span>
+              </article>
+              <article class="guide-card">
+                <img class="guide-thumb" data-guide-item="snack1" alt="Snack 1">
+                <strong data-i18n="item.snack1">Strawberry Cake</strong>
+                <span class="guide-points">+18</span>
+              </article>
+              <article class="guide-card">
+                <img class="guide-thumb" data-guide-item="snack4" alt="Snack 4">
+                <strong data-i18n="item.snack4">Blue Soda</strong>
+                <span class="guide-points">+14</span>
+              </article>
+            </div>
+          </div>
+          <div class="guide-group guide-group--special">
+            <h3 data-i18n="guide.group.special">Special</h3>
+            <div class="guide-cards">
+              <article class="guide-card">
+                <img class="guide-thumb" data-guide-item="special1" alt="Special 1">
+                <strong data-i18n="item.special1">Full Moon</strong>
+                <span class="guide-points guide-points--special" data-i18n="item.special1.effect">+20s</span>
+              </article>
+              <article class="guide-card">
+                <img class="guide-thumb" data-guide-item="heal1" alt="Special 2">
+                <strong data-i18n="item.heal1">Yachiyo Doll</strong>
+                <span class="guide-points guide-points--special" data-i18n="item.heal1.effect">+1HP</span>
+              </article>
+              <article class="guide-card">
+                <img class="guide-thumb" data-guide-item="iroha" alt="Iroha">
+                <strong data-i18n="item.iroha">Iroha</strong>
+                <span class="guide-points guide-points--iroha">+50</span>
+              </article>
+            </div>
+          </div>
+          <div class="guide-group guide-group--danger">
+            <h3 data-i18n="guide.group.trap">Traps</h3>
+            <div class="guide-cards">
+              <article class="guide-card">
+                <img class="guide-thumb" data-guide-item="danger1" alt="Trap 1">
+                <strong data-i18n="item.danger1">Moon Agent</strong>
+                <span class="guide-points guide-points--danger">-32</span>
+              </article>
+              <article class="guide-card">
+                <img class="guide-thumb" data-guide-item="danger3" alt="Trap 3">
+                <strong data-i18n="item.danger3">Mikado</strong>
+                <span class="guide-points guide-points--danger">-26</span>
+              </article>
+              <article class="guide-card">
+                <img class="guide-thumb" data-guide-item="danger2" alt="Trap 2">
+                <strong data-i18n="item.danger2">Watery Pancake</strong>
+                <span class="guide-points guide-points--danger">-20</span>
+              </article>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <script src="./app-config.js"></script>
     <script type="module" src="./game.js"></script>
+    <script>
+      (function () {
+        var mq = window.matchMedia("(max-width: 600px)");
+        if (!mq.matches) return;
+
+        var canvas = document.getElementById("introCharacterCanvas");
+        if (!canvas) return;
+
+        var img = new Image();
+        img.crossOrigin = "anonymous";
+        img.src = "./processed-assets/special/thumbnail_raw.png";
+        img.onload = function () {
+          var W = img.naturalWidth;
+          var H = img.naturalHeight;
+          canvas.width = W;
+          canvas.height = H;
+
+          var ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0);
+
+          var data = ctx.getImageData(0, 0, W, H);
+          var px = data.data;
+
+          for (var i = 0; i < px.length; i += 4) {
+            var r = px[i], g = px[i + 1], b = px[i + 2];
+            // 녹색 크로마키 제거: G 우세하고 충분히 채도 있는 픽셀
+            if (g > 80 && g > r * 1.3 && g > b * 1.3) {
+              // 경계 부드럽게: 반투명 처리
+              var greenness = Math.min(1, (g - Math.max(r, b)) / 80);
+              px[i + 3] = Math.round(px[i + 3] * (1 - greenness));
+            }
+          }
+
+          ctx.putImageData(data, 0, 0);
+        };
+      })();
+    </script>
   </body>
 </html>

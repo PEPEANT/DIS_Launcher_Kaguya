@@ -1,18 +1,36 @@
 import { GAME_DURATION, GROUND_Y } from "./constants.js";
+import { getCurrentContentSeasonId } from "./config/runtime.js";
 
-const DEFAULT_MAX_HEALTH = 6;
+const DEFAULT_MAX_HEALTH_BY_SEASON = Object.freeze({
+  s1: 6,
+  s2: 5
+});
+const DEFAULT_PLAYER_WIDTH = 240;
+const DEFAULT_PLAYER_HEIGHT = 326;
+
+function getDefaultMaxHealth() {
+  return DEFAULT_MAX_HEALTH_BY_SEASON[getCurrentContentSeasonId()] || DEFAULT_MAX_HEALTH_BY_SEASON.s1;
+}
 
 export function createPlayer() {
   return {
     x: 236,
     y: GROUND_Y,
-    width: 240,
-    height: 326,
+    baseWidth: DEFAULT_PLAYER_WIDTH,
+    baseHeight: DEFAULT_PLAYER_HEIGHT,
+    width: DEFAULT_PLAYER_WIDTH,
+    height: DEFAULT_PLAYER_HEIGHT,
     speed: 470,
     jumpPower: 980,
     gravity: 2400,
     velocityY: 0,
     onGround: true,
+    isCrouching: false,
+    isSliding: false,
+    slideTimer: 0,
+    slideCooldownUntil: Number.NEGATIVE_INFINITY,
+    slideDirection: 1,
+    slideRecoveryTimer: 0,
     facing: 1,
     walkTime: 0
   };
@@ -34,8 +52,8 @@ export const state = {
   roundBackgroundKey: "backgroundRound1",
   roundTransitionTimer: 0,
   timeLimit: GAME_DURATION,
-  maxHealth: DEFAULT_MAX_HEALTH,
-  health: DEFAULT_MAX_HEALTH,
+  maxHealth: getDefaultMaxHealth(),
+  health: getDefaultMaxHealth(),
   score: 0,
   timeLeft: GAME_DURATION,
   elapsed: 0,
@@ -44,9 +62,29 @@ export const state = {
   floatTexts: [],
   rankings: [],
   lastRank: null,
+  hujupayBalance: 0,
+  hujupayEarnedTotal: 0,
+  equippedSkin: "skin_0",
+  ownedSkins: [],
+  finalBossPrepTriggered: false,
+  finalBossPrepStartedAt: Number.NEGATIVE_INFINITY,
+  finalBossCueIds: [],
+  backgroundStageMinScore: 0,
+  awardedBackgroundStageThresholds: [],
+  backgroundTransitionFromKey: "",
+  backgroundTransitionStartAt: Number.NEGATIVE_INFINITY,
+  backgroundTransitionDuration: 0,
+  backgroundFlashTimer: 0,
+  backgroundFlashDuration: 0,
+  backgroundFlashIntensity: 0,
+  backgroundFlashColor: [255, 244, 214],
+  backgroundParticles: [],
+  backgroundParticleEmitters: [],
+  recentDangerSpawnLanes: [],
   isNewBest: false,
   shake: 0,
   damageTimer: 0,
+  yummyTimer: 0,
   resultSceneKey: "",
   resultSceneX: 0,
   resultSceneY: 0,
@@ -56,7 +94,10 @@ export const state = {
   input: {
     left: false,
     right: false,
-    jumpQueued: false
+    down: false,
+    jumpQueued: false,
+    leftTapAt: Number.NEGATIVE_INFINITY,
+    rightTapAt: Number.NEGATIVE_INFINITY
   },
   player: createPlayer()
 };
@@ -70,8 +111,9 @@ export function resetRound(name) {
   state.roundBackgroundKey = "backgroundRound1";
   state.roundTransitionTimer = 1.8;
   state.timeLimit = GAME_DURATION;
-  state.maxHealth = DEFAULT_MAX_HEALTH;
-  state.health = DEFAULT_MAX_HEALTH;
+  const defaultMaxHealth = getDefaultMaxHealth();
+  state.maxHealth = defaultMaxHealth;
+  state.health = defaultMaxHealth;
   state.score = 0;
   state.timeLeft = GAME_DURATION;
   state.elapsed = 0;
@@ -79,9 +121,25 @@ export function resetRound(name) {
   state.items = [];
   state.floatTexts = [];
   state.lastRank = null;
+  state.finalBossPrepTriggered = false;
+  state.finalBossPrepStartedAt = Number.NEGATIVE_INFINITY;
+  state.finalBossCueIds = [];
+  state.backgroundStageMinScore = 0;
+  state.awardedBackgroundStageThresholds = [];
+  state.backgroundTransitionFromKey = "";
+  state.backgroundTransitionStartAt = Number.NEGATIVE_INFINITY;
+  state.backgroundTransitionDuration = 0;
+  state.backgroundFlashTimer = 0;
+  state.backgroundFlashDuration = 0;
+  state.backgroundFlashIntensity = 0;
+  state.backgroundFlashColor = [255, 244, 214];
+  state.backgroundParticles = [];
+  state.backgroundParticleEmitters = [];
+  state.recentDangerSpawnLanes = [];
   state.isNewBest = false;
   state.shake = 0;
   state.damageTimer = 0;
+  state.yummyTimer = 0;
   state.resultSceneKey = "";
   state.resultSceneX = 0;
   state.resultSceneY = 0;
@@ -89,6 +147,9 @@ export function resetRound(name) {
   state.lastHealSpawnAt = Number.NEGATIVE_INFINITY;
   state.input.left = false;
   state.input.right = false;
+  state.input.down = false;
   state.input.jumpQueued = false;
+  state.input.leftTapAt = Number.NEGATIVE_INFINITY;
+  state.input.rightTapAt = Number.NEGATIVE_INFINITY;
   state.player = createPlayer();
 }

@@ -7,7 +7,8 @@ const PRESENCE_COLLECTION = "presence";
 const SESSION_COLLECTION = "presenceSessions";
 const HEARTBEAT_INTERVAL_MS = 15000;
 const SESSION_SYNC_INTERVAL_MS = 60000;
-const SESSION_STORAGE_KEY = "kaguya-session-id";
+const SESSION_ID_STORAGE_KEY = "kaguya-session-id";
+const SESSION_STARTED_AT_STORAGE_KEY = "kaguya-session-started-at";
 
 let presenceDocRef = null;
 let sessionDocRef = null;
@@ -17,6 +18,7 @@ let presenceSource = null;
 let lastSessionSyncAt = 0;
 let lastSessionNickname = "";
 let lastSessionPhase = "";
+let sessionStartedAt = "";
 
 function hasFirebaseConfig(config) {
   return Boolean(config?.apiKey && config?.projectId && config?.appId);
@@ -49,26 +51,37 @@ function createSessionId() {
   return `session-${Math.random().toString(36).slice(2, 14)}-${Date.now().toString(36)}`;
 }
 
-function getOrCreateSessionId() {
-  try {
-    const stored = sessionStorage.getItem(SESSION_STORAGE_KEY);
-    if (stored) {
-      return stored;
-    }
-
-    const nextId = createSessionId();
-    sessionStorage.setItem(SESSION_STORAGE_KEY, nextId);
-    return nextId;
-  } catch {
-    return createSessionId();
-  }
+function isValidIsoTimestamp(value) {
+  const date = new Date(value);
+  return !Number.isNaN(date.getTime());
 }
 
-function clearStoredSessionId() {
+function getOrCreateSessionState() {
+  const fallbackStartedAt = new Date().toISOString();
+
   try {
-    sessionStorage.removeItem(SESSION_STORAGE_KEY);
+    const storedId = sessionStorage.getItem(SESSION_ID_STORAGE_KEY);
+    const storedStartedAt = sessionStorage.getItem(SESSION_STARTED_AT_STORAGE_KEY);
+
+    if (storedId && isValidIsoTimestamp(storedStartedAt)) {
+      return {
+        sessionId: storedId,
+        startedAt: storedStartedAt
+      };
+    }
+
+    const nextState = {
+      sessionId: createSessionId(),
+      startedAt: fallbackStartedAt
+    };
+    sessionStorage.setItem(SESSION_ID_STORAGE_KEY, nextState.sessionId);
+    sessionStorage.setItem(SESSION_STARTED_AT_STORAGE_KEY, nextState.startedAt);
+    return nextState;
   } catch {
-    // Session storage is optional.
+    return {
+      sessionId: createSessionId(),
+      startedAt: fallbackStartedAt
+    };
   }
 }
 
@@ -99,12 +112,9 @@ async function syncSessionLog({ force = false, endedAt = "" } = {}) {
     nickname,
     phase,
     page: "game",
+    startedAt: sessionStartedAt || nowIso,
     lastSeen: nowIso
   };
-
-  if (!lastSessionSyncAt) {
-    payload.startedAt = nowIso;
-  }
 
   if (endedAt) {
     payload.endedAt = endedAt;
@@ -162,8 +172,6 @@ async function clearPresence() {
       // Presence is best-effort only.
     }
   }
-
-  clearStoredSessionId();
 }
 
 export function startPresenceTracking({ playerId, getNickname, getPhase }) {
@@ -179,7 +187,9 @@ export function startPresenceTracking({ playerId, getNickname, getPhase }) {
   started = true;
   presenceSource = { playerId, getNickname, getPhase };
   presenceDocRef = doc(db, PRESENCE_COLLECTION, playerId);
-  sessionDocRef = doc(db, SESSION_COLLECTION, getOrCreateSessionId());
+  const sessionState = getOrCreateSessionState();
+  sessionStartedAt = sessionState.startedAt;
+  sessionDocRef = doc(db, SESSION_COLLECTION, sessionState.sessionId);
   void syncSessionLog({ force: true });
 
   const refresh = () => {

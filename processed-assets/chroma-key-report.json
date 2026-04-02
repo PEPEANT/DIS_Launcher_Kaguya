@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-03-31T12:35:27.218Z",
+  "generatedAt": "2026-04-02T12:05:40.501Z",
   "config": {
     "backgroundHint": "green-screen",
     "minGreen": 100,
@@ -51,6 +51,30 @@
       "transparentPixels": 888435
     },
     {
+      "key": "down",
+      "file": "character/5.png",
+      "sourceFile": "character/5.png",
+      "transparentPixels": 356418
+    },
+    {
+      "key": "happy",
+      "file": "character/6.png",
+      "sourceFile": "character/6.png",
+      "transparentPixels": 889085
+    },
+    {
+      "key": "downWalk1",
+      "file": "character/7.png",
+      "sourceFile": "character/7.png",
+      "transparentPixels": 2637384
+    },
+    {
+      "key": "downWalk2",
+      "file": "character/8.png",
+      "sourceFile": "character/8.png",
+      "transparentPixels": 2851958
+    },
+    {
       "key": "snack1",
       "file": "item/01.png",
       "sourceFile": "item/01.png",
@@ -81,22 +105,34 @@
       "transparentPixels": 524137
     },
     {
+      "key": "snack6",
+      "file": "item/07.png",
+      "sourceFile": "item/07.png",
+      "transparentPixels": 629469
+    },
+    {
       "key": "iroha",
       "file": "item/06.png",
-      "sourceFile": "item/06.png",
-      "transparentPixels": 449059
+      "sourceFile": "item/06.1.png",
+      "transparentPixels": 451386
     },
     {
       "key": "special1",
       "file": "item/special_01.png",
-      "sourceFile": "item/special_01.png",
-      "transparentPixels": 777904
+      "sourceFile": "item/special_01.1.png.png",
+      "transparentPixels": 795565
     },
     {
       "key": "heal1",
       "file": "item/yachiyo_doll.png",
       "sourceFile": "item/yachiyo_doll.jpg",
       "transparentPixels": 819560
+    },
+    {
+      "key": "hujupayCoin",
+      "file": "item/Fuju.png",
+      "sourceFile": "item/Fuju.png",
+      "transparentPixels": 530194
     },
     {
       "key": "introFigure",
@@ -121,6 +157,42 @@
       "file": "item/003.png",
       "sourceFile": "item/003.png",
       "transparentPixels": 667263
+    },
+    {
+      "key": "slide",
+      "file": "character/9.png",
+      "sourceFile": "character/9.png",
+      "transparentPixels": 258615
+    },
+    {
+      "key": "snack7",
+      "file": "item/08.png",
+      "sourceFile": "item/08_source.png",
+      "transparentPixels": 752791
+    },
+    {
+      "key": "snack8",
+      "file": "item/09.png",
+      "sourceFile": "item/09_source.png",
+      "transparentPixels": 570373
+    },
+    {
+      "key": "z1",
+      "file": "item/z1.png",
+      "sourceFile": "item/z1.png",
+      "transparentPixels": 865630
+    },
+    {
+      "key": "z2",
+      "file": "item/z2.png",
+      "sourceFile": "item/z2.png",
+      "transparentPixels": 761756
+    },
+    {
+      "key": "z3",
+      "file": "item/z3.png",
+      "sourceFile": "item/z3.png",
+      "transparentPixels": 784330
     }
   ]
 }

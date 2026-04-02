@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Kaguya Host Playtest</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <main class="admin-shell playtest-shell">
+      <header class="admin-header">
+        <div>
+          <p class="admin-eyebrow">Host Playtest</p>
+          <h1>시즌 테스트 플레이</h1>
+        </div>
+        <div class="admin-header-actions">
+          <a href="./index.html" class="refresh-button refresh-button--secondary">대시보드</a>
+          <button id="reloadPlaytestButton" type="button" class="refresh-button">게임 새로고침</button>
+        </div>
+      </header>
+
+      <section class="panel-card playtest-hero">
+        <div class="playtest-hero-copy">
+          <h2>랭킹, 계정 연결, 접속 통계에 반영되지 않는 호스트 전용 테스트 모드입니다.</h2>
+          <p>시즌2 작업물을 빠르게 확인하고 보스 구간 프리셋이나 강제 소환으로 체감을 점검할 수 있습니다.</p>
+        </div>
+        <div class="playtest-hero-actions">
+          <label class="playtest-select">
+            <span>콘텐츠 시즌</span>
+            <select id="contentSeasonSelect"></select>
+          </label>
+          <button id="openStandaloneButton" type="button" class="refresh-button refresh-button--secondary">새 탭으로 열기</button>
+        </div>
+      </section>
+
+      <section class="playtest-grid">
+        <aside class="panel-card playtest-controls">
+          <div class="panel-head">
+            <h2>호스트 컨트롤</h2>
+            <p id="playtestConnectionStatus">게임 연결 대기 중...</p>
+          </div>
+
+          <section class="playtest-section">
+            <h3>기본</h3>
+            <div class="playtest-button-grid">
+              <button id="playtestLobbyButton" type="button" class="refresh-button refresh-button--secondary">로비</button>
+              <button id="playtestStartButton" type="button" class="refresh-button">즉시 시작</button>
+            </div>
+          </section>
+
+          <section class="playtest-section">
+            <h3>보스 프리셋</h3>
+            <div class="playtest-button-grid">
+              <button id="preset7000Button" type="button" class="refresh-button refresh-button--secondary">7000점 보스</button>
+              <button id="preset8000Button" type="button" class="refresh-button refresh-button--secondary">8000점 보스</button>
+              <button id="preset9000Button" type="button" class="refresh-button refresh-button--secondary">9000점 보스</button>
+            </div>
+          </section>
+
+          <section class="playtest-section">
+            <h3>빠른 조정</h3>
+            <div class="playtest-button-grid">
+              <button id="plusScoreButton" type="button" class="refresh-button refresh-button--secondary">+1000점</button>
+              <button id="plusTimeButton" type="button" class="refresh-button refresh-button--secondary">+10초</button>
+              <button id="healHpButton" type="button" class="refresh-button refresh-button--secondary">HP +1</button>
+            </div>
+          </section>
+
+          <section class="playtest-section">
+            <h3>강제 소환</h3>
+            <div class="playtest-button-grid">
+              <button id="spawnIrohaButton" type="button" class="refresh-button refresh-button--secondary">달</button>
+              <button id="spawnFullMoonButton" type="button" class="refresh-button refresh-button--secondary">풀문</button>
+              <button id="spawnHealButton" type="button" class="refresh-button refresh-button--secondary">힐</button>
+              <button id="spawnZ1Button" type="button" class="refresh-button refresh-button--secondary">z1</button>
+              <button id="spawnZ2Button" type="button" class="refresh-button refresh-button--secondary">z2</button>
+              <button id="spawnZ3Button" type="button" class="refresh-button refresh-button--secondary">z3</button>
+            </div>
+          </section>
+        </aside>
+
+        <section class="panel-card playtest-stage">
+          <div class="playtest-status-grid">
+            <article class="stat-card playtest-stat-card">
+              <span>화면</span>
+              <strong id="statusScreen">-</strong>
+            </article>
+            <article class="stat-card playtest-stat-card">
+              <span>상태</span>
+              <strong id="statusPhase">-</strong>
+            </article>
+            <article class="stat-card playtest-stat-card">
+              <span>점수</span>
+              <strong id="statusScore">0</strong>
+            </article>
+            <article class="stat-card playtest-stat-card">
+              <span>라운드</span>
+              <strong id="statusRound">1</strong>
+            </article>
+            <article class="stat-card playtest-stat-card">
+              <span>남은 시간</span>
+              <strong id="statusTime">0초</strong>
+            </article>
+            <article class="stat-card playtest-stat-card">
+              <span>HP</span>
+              <strong id="statusHealth">0 / 0</strong>
+            </article>
+          </div>
+
+          <div class="playtest-frame-wrap">
+            <iframe id="playtestFrame" class="playtest-frame" title="Host Playtest" allowfullscreen></iframe>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script src="../app-config.js"></script>
+    <script type="module" src="./playtest.js"></script>
+  </body>
+</html>

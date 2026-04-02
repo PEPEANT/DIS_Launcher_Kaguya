@@ -31,7 +31,8 @@ function createEffect(src, { volume = 1, playbackRate = 1 } = {}) {
 
 const tracks = {
   lobby: createTrack("./audio/ost00.mp3", 0.34),
-  game: createTrack("./audio/ost01.mp3", 0.3)
+  game: createTrack("./audio/ost01.mp3", 0.3),
+  bossPrep: createTrack("./audio/ost02.mp3", 0.34)
 };
 
 const effects = {
@@ -82,14 +83,16 @@ function pauseAllTracks() {
 }
 
 function updateMusicToggleButton() {
-  if (!elements.musicToggleButton) {
-    return;
-  }
-
   const label = enabled ? t("audio.off") : t("audio.on");
-  elements.musicToggleButton.textContent = label;
-  elements.musicToggleButton.setAttribute("aria-label", label);
-  elements.musicToggleButton.setAttribute("aria-pressed", String(enabled));
+  [elements.musicToggleButton, elements.settingsMusicToggleButton].forEach((button) => {
+    if (!button) {
+      return;
+    }
+
+    button.textContent = label;
+    button.setAttribute("aria-label", label);
+    button.setAttribute("aria-pressed", String(enabled));
+  });
 }
 
 function rememberPreference() {
@@ -200,6 +203,11 @@ export function playLobbyMusic() {
 
 export function playGameMusic() {
   desiredTrackKey = "game";
+  void playDesiredTrack();
+}
+
+export function playBossPrepMusic() {
+  desiredTrackKey = "bossPrep";
   void playDesiredTrack();
 }
 

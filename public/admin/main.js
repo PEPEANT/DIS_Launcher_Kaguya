@@ -1,47 +1,37 @@
 import { getApp, getApps, initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
-import { collection, getDocs, getFirestore, orderBy, query, where } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
-import { getAdminAccessConfig, getCurrentRankingSeason, getFirebaseRuntimeConfig, getRankingSeasonCollection, getRankingSeasonConfig } from "../game/config/runtime.js";
+import { collection, doc, getDoc, getDocs, getFirestore, orderBy, query, where } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+import { initAuth } from "../game/auth.js";
+import {
+  getAdminAccessConfig,
+  getAvailableRankingSeasons,
+  getCurrentRankingSeason,
+  getFirebaseRuntimeConfig,
+  getRankingSeasonCollection,
+  getRankingSeasonConfig
+} from "../game/config/runtime.js";
 
 const PRESENCE_COLLECTION = "presence";
 const SESSION_COLLECTION = "presenceSessions";
-const ACTIVE_WINDOW_MS = 35000;
-const REFRESH_INTERVAL_MS = 10000;
+const ACTIVE_WINDOW_MS = 35_000;
+const REFRESH_INTERVAL_MS = 10_000;
 const ANALYTICS_WINDOW_DAYS = 30;
 const CURRENT_SEASON = getCurrentRankingSeason();
 const CURRENT_RANKING_COLLECTION = getRankingSeasonCollection(CURRENT_SEASON);
 const CURRENT_SEASON_META = getRankingSeasonConfig(CURRENT_SEASON);
+const RANKING_SEASONS = getAvailableRankingSeasons().sort((left, right) => right.id - left.id);
 
 const PERIOD_DEFINITIONS = [
-  {
-    key: "daily",
-    label: "오늘",
-    cardLabel: "일간",
-    days: 1,
-    dayOffset: 0
-  },
-  {
-    key: "weekly",
-    label: "최근 7일",
-    cardLabel: "주간",
-    days: 7,
-    dayOffset: 6
-  },
-  {
-    key: "monthly",
-    label: "최근 30일",
-    cardLabel: "월간",
-    days: 30,
-    dayOffset: 29
-  }
+  { key: "daily", label: "Today", days: 1, dayOffset: 0 },
+  { key: "weekly", label: "Last 7 days", days: 7, dayOffset: 6 },
+  { key: "monthly", label: "Last 30 days", days: 30, dayOffset: 29 }
 ];
 
 const PHASE_LABELS = {
-  ready: "대기",
-  loading: "로딩",
-  playing: "플레이 중",
-  submitting: "기록 제출",
-  error: "오류"
+  ready: "Ready",
+  loading: "Loading",
+  playing: "Playing",
+  submitting: "Submitting",
+  error: "Error"
 };
 
 const elements = {
@@ -65,6 +55,15 @@ const elements = {
 };
 
 const adminAccessConfig = getAdminAccessConfig();
+const adminState = {
+  rankings: [],
+  activePresence: [],
+  recentSessions: [],
+  seasonRankingsCache: new Map(),
+  playerModal: null
+};
+
+let barHitAreas = [];
 
 function hasFirebaseConfig(config) {
   return Boolean(config?.apiKey && config?.projectId && config?.appId);
@@ -80,18 +79,12 @@ function getDb() {
   return getFirestore(app);
 }
 
-function getAuthInstance() {
-  const config = getFirebaseRuntimeConfig();
-  if (!hasFirebaseConfig(config)) {
-    throw new Error("Firebase config missing");
-  }
-
-  const app = getApps().length ? getApp() : initializeApp(config);
-  return getAuth(app);
-}
-
 function normalizeEmail(email) {
   return String(email || "").trim().toLowerCase();
+}
+
+function normalizeName(name) {
+  return Array.from(String(name || "").trim().replace(/\s+/g, " ")).slice(0, 12).join("");
 }
 
 function canBypassAdminAllowlist() {
@@ -114,68 +107,6 @@ function isAuthorizedAdmin(user) {
   return adminAccessConfig.allowedEmails.includes(normalizeEmail(user.email));
 }
 
-function renderAccessGate({ title, body }) {
-  document.body.innerHTML = `
-    <main class="admin-shell">
-      <section class="panel-card admin-access-card">
-        <div class="panel-head">
-          <h2>${escapeHtml(title)}</h2>
-        </div>
-        <p class="admin-access-copy">${escapeHtml(body)}</p>
-        <div class="admin-access-actions">
-          <a class="refresh-button" href="/">Open Game</a>
-          <button class="refresh-button refresh-button--secondary" type="button" id="retryAdminAccess">Retry</button>
-        </div>
-      </section>
-    </main>
-  `;
-
-  document.getElementById("retryAdminAccess")?.addEventListener("click", () => {
-    window.location.reload();
-  });
-}
-
-async function requireAuthorizedAdmin() {
-  if (!adminAccessConfig.requiresSignIn && !adminAccessConfig.allowedEmails.length) {
-    return null;
-  }
-
-  return new Promise((resolve, reject) => {
-    const unsubscribe = onAuthStateChanged(getAuthInstance(), (user) => {
-      unsubscribe();
-
-      if (!user?.uid) {
-        renderAccessGate({
-          title: "Admin sign-in required",
-          body: "Sign in with an admin account in the main game first, then reopen this page."
-        });
-        reject(new Error("Admin login required."));
-        return;
-      }
-
-      if (!isAuthorizedAdmin(user)) {
-        renderAccessGate({
-          title: "Access denied",
-          body: adminAccessConfig.allowedEmails.length
-            ? `The signed-in account (${normalizeEmail(user.email)}) is not in the admin allowlist.`
-            : "Set ADMIN_ALLOWED_EMAILS on the app server, then sign in again."
-        });
-        reject(new Error("Admin allowlist rejected the current user."));
-        return;
-      }
-
-      resolve(user);
-    }, (error) => {
-      unsubscribe();
-      reject(error);
-    });
-  });
-}
-
-function normalizeName(name) {
-  return Array.from(String(name || "").trim().replace(/\s+/g, " ")).slice(0, 12).join("");
-}
-
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, (char) => ({
     "&": "&amp;",
@@ -188,6 +119,15 @@ function escapeHtml(value) {
 
 function formatNumber(value) {
   return Number.isFinite(value) ? value.toLocaleString("ko-KR") : "-";
+}
+
+function formatText(value, fallback = "-") {
+  const safeValue = String(value ?? "").trim();
+  return safeValue || fallback;
+}
+
+function formatList(values, fallback = "-") {
+  return Array.isArray(values) && values.length ? values.join(", ") : fallback;
 }
 
 function formatDateTime(value) {
@@ -218,16 +158,20 @@ function formatAgo(value) {
 
   const seconds = Math.max(0, Math.round((Date.now() - date.getTime()) / 1000));
   if (seconds < 60) {
-    return `${seconds}초 전`;
+    return `${seconds}s ago`;
   }
 
   const minutes = Math.floor(seconds / 60);
   if (minutes < 60) {
-    return `${minutes}분 전`;
+    return `${minutes}m ago`;
   }
 
   const hours = Math.floor(minutes / 60);
-  return `${hours}시간 전`;
+  if (hours < 24) {
+    return `${hours}h ago`;
+  }
+
+  return `${Math.floor(hours / 24)}d ago`;
 }
 
 function compareRankings(left, right) {
@@ -238,20 +182,445 @@ function compareRankings(left, right) {
   return String(left.submittedAt).localeCompare(String(right.submittedAt));
 }
 
+function getGameEntryUrl() {
+  const pathname = String(window.location.pathname || "/");
+  const entryPath = pathname.startsWith("/public/admin/") ? "/public/index.html" : "/";
+  return new URL(entryPath, window.location.origin);
+}
+
+function renderAccessGate({ title, body }) {
+  document.body.innerHTML = `
+    <main class="admin-shell">
+      <section class="panel-card admin-access-card">
+        <div class="panel-head">
+          <h2>${escapeHtml(title)}</h2>
+        </div>
+        <p class="admin-access-copy">${escapeHtml(body)}</p>
+        <div class="admin-access-actions">
+          <a class="refresh-button" href="${escapeHtml(getGameEntryUrl().toString())}">Open Game</a>
+          <button class="refresh-button refresh-button--secondary" type="button" id="retryAdminAccess">Retry</button>
+        </div>
+      </section>
+    </main>
+  `;
+
+  document.getElementById("retryAdminAccess")?.addEventListener("click", () => {
+    window.location.reload();
+  });
+}
+
+async function requireAuthorizedAdmin() {
+  if (!adminAccessConfig.requiresSignIn && !adminAccessConfig.allowedEmails.length) {
+    return null;
+  }
+
+  const { user } = await initAuth();
+
+  if (!user?.uid) {
+    renderAccessGate({
+      title: "Admin sign-in required",
+      body: "Sign in with an admin account in the main game first, then reopen this page. Use the same address for both pages, such as localhost on both tabs instead of mixing localhost and 127.0.0.1."
+    });
+    throw new Error("Admin login required.");
+  }
+
+  if (!isAuthorizedAdmin(user)) {
+    renderAccessGate({
+      title: "Access denied",
+      body: adminAccessConfig.allowedEmails.length
+        ? `The signed-in account (${normalizeEmail(user.email)}) is not in the admin allowlist.`
+        : "Set ADMIN_ALLOWED_EMAILS on the app server, then sign in again."
+    });
+    throw new Error("Admin allowlist rejected the current user.");
+  }
+
+  return user;
+}
+
+function formatPhaseLabel(phase) {
+  return PHASE_LABELS[phase] || formatText(phase);
+}
+
+function renderMetaRows(rows) {
+  return rows.map((row) => `
+    <div class="player-detail-meta-row">
+      <dt>${escapeHtml(row.label)}</dt>
+      <dd>${escapeHtml(row.value)}</dd>
+    </div>
+  `).join("");
+}
+
+function createPlayerDetailModal() {
+  const wrapper = document.createElement("div");
+  wrapper.className = "player-detail-modal";
+  wrapper.setAttribute("hidden", "");
+  wrapper.innerHTML = `
+    <div class="player-detail-backdrop" data-player-modal-close></div>
+    <section class="player-detail-dialog" role="dialog" aria-modal="true" aria-labelledby="playerDetailTitle">
+      <div class="player-detail-header">
+        <div>
+          <p class="player-detail-eyebrow">Player Lookup</p>
+          <h2 id="playerDetailTitle">Player detail</h2>
+          <p id="playerDetailSubtitle" class="player-detail-subtitle">Select a player to inspect live and seasonal records.</p>
+        </div>
+        <button type="button" class="player-detail-close" data-player-modal-close aria-label="Close player detail">Close</button>
+      </div>
+      <div id="playerDetailBody" class="player-detail-body"></div>
+    </section>
+  `;
+
+  document.body.append(wrapper);
+
+  const modal = {
+    wrapper,
+    title: wrapper.querySelector("#playerDetailTitle"),
+    subtitle: wrapper.querySelector("#playerDetailSubtitle"),
+    body: wrapper.querySelector("#playerDetailBody")
+  };
+
+  wrapper.querySelectorAll("[data-player-modal-close]").forEach((node) => {
+    node.addEventListener("click", () => {
+      closePlayerDetailModal();
+    });
+  });
+
+  window.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !wrapper.hasAttribute("hidden")) {
+      closePlayerDetailModal();
+    }
+  });
+
+  return modal;
+}
+
+function ensurePlayerModal() {
+  if (!adminState.playerModal) {
+    adminState.playerModal = createPlayerDetailModal();
+  }
+
+  return adminState.playerModal;
+}
+
+function openPlayerDetailModalShell({ title, subtitle, bodyHtml }) {
+  const modal = ensurePlayerModal();
+  modal.title.textContent = title;
+  modal.subtitle.textContent = subtitle;
+  modal.body.innerHTML = bodyHtml;
+  modal.wrapper.removeAttribute("hidden");
+  document.body.classList.add("player-detail-open");
+}
+
+function closePlayerDetailModal() {
+  const modal = adminState.playerModal;
+  if (!modal) {
+    return;
+  }
+
+  modal.wrapper.setAttribute("hidden", "");
+  document.body.classList.remove("player-detail-open");
+}
+
+function renderPlayerLoadingState(name) {
+  openPlayerDetailModalShell({
+    title: formatText(name, "Player detail"),
+    subtitle: "Loading live and seasonal records...",
+    bodyHtml: `
+      <div class="player-detail-empty">
+        <strong>Loading player detail...</strong>
+        <p>Collecting ranking and presence data for this player.</p>
+      </div>
+    `
+  });
+}
+
+function renderPlayerErrorState(name, error) {
+  openPlayerDetailModalShell({
+    title: formatText(name, "Player detail"),
+    subtitle: "Could not load the requested player record.",
+    bodyHtml: `
+      <div class="player-detail-empty">
+        <strong>Player detail unavailable</strong>
+        <p>${escapeHtml(formatText(error?.message, "Unknown error"))}</p>
+      </div>
+    `
+  });
+}
+
+async function loadSeasonRankings(seasonId) {
+  const cacheKey = String(seasonId);
+  if (!adminState.seasonRankingsCache.has(cacheKey)) {
+    adminState.seasonRankingsCache.set(cacheKey, (async () => {
+      const seasonCollection = getRankingSeasonCollection(seasonId);
+      const seasonQuery = query(collection(getDb(), seasonCollection), orderBy("score", "desc"));
+      const snapshot = await getDocs(seasonQuery);
+      return snapshot.docs
+        .map((entryDoc) => {
+          const data = entryDoc.data();
+          return {
+            playerId: String(data.playerId || ""),
+            uid: String(data.uid || "").trim(),
+            name: normalizeName(data.nicknameSnapshot || data.name),
+            score: Math.floor(Number(data.score)),
+            submittedAt: typeof data.submittedAt === "string" ? data.submittedAt : ""
+          };
+        })
+        .filter((entry) => entry.name && Number.isFinite(entry.score))
+        .sort(compareRankings);
+    })());
+  }
+
+  return adminState.seasonRankingsCache.get(cacheKey);
+}
+
+function getLatestPresenceEntry(playerId) {
+  return adminState.activePresence.find((entry) => entry.playerId === playerId) || null;
+}
+
+function getPlayerSessionStats(playerId) {
+  const matchedSessions = adminState.recentSessions.filter((entry) => entry.playerId === playerId);
+  return {
+    totalSessions: matchedSessions.length,
+    latestStartedAt: matchedSessions[0]?.startedAt || "",
+    latestEndedAt: matchedSessions.find((entry) => entry.endedAt)?.endedAt || ""
+  };
+}
+
+async function buildPlayerLookupDetail(entry) {
+  const safePlayerId = String(entry?.playerId || "").trim();
+  const safeUid = String(entry?.uid || "").trim();
+  const latestPresence = safePlayerId ? getLatestPresenceEntry(safePlayerId) : null;
+  const sessionStats = safePlayerId
+    ? getPlayerSessionStats(safePlayerId)
+    : { totalSessions: 0, latestStartedAt: "", latestEndedAt: "" };
+
+  const knownNicknames = new Set(
+    [entry?.name, entry?.nickname, latestPresence?.nickname]
+      .map((value) => normalizeName(value))
+      .filter(Boolean)
+  );
+  const seasonRows = [];
+
+  for (const seasonConfig of RANKING_SEASONS) {
+    const seasonRankings = await loadSeasonRankings(seasonConfig.id);
+    const matchedEntry = seasonRankings.find((candidate) => {
+      if (safePlayerId && candidate.playerId === safePlayerId) {
+        return true;
+      }
+
+      if (safeUid && candidate.uid && candidate.uid === safeUid) {
+        return true;
+      }
+
+      return false;
+    });
+
+    if (!matchedEntry) {
+      continue;
+    }
+
+    knownNicknames.add(normalizeName(matchedEntry.name));
+    seasonRows.push({
+      seasonName: seasonConfig.displayName,
+      period: seasonConfig.period,
+      status: seasonConfig.status,
+      score: matchedEntry.score,
+      rank: seasonRankings.findIndex((candidate) => candidate.playerId === matchedEntry.playerId) + 1,
+      submittedAt: matchedEntry.submittedAt
+    });
+  }
+
+  let accountSummary = null;
+  if (safeUid) {
+    try {
+      const userSnapshot = await getDoc(doc(getDb(), "users", safeUid));
+      if (userSnapshot.exists()) {
+        const userData = userSnapshot.data() || {};
+        accountSummary = {
+          currentNickname: normalizeName(userData.currentNickname || userData.displayName || userData.lastNickname),
+          lastSeenPlayerId: String(userData.lastSeenPlayerId || "").trim(),
+          linkedPlayerIds: Array.isArray(userData.linkedPlayerIds)
+            ? userData.linkedPlayerIds.map((value) => String(value || "").trim()).filter(Boolean)
+            : []
+        };
+        if (accountSummary.currentNickname) {
+          knownNicknames.add(accountSummary.currentNickname);
+        }
+      }
+    } catch (error) {
+      console.warn("Admin player lookup could not read users collection.", error);
+    }
+  }
+
+  return {
+    playerId: safePlayerId,
+    uid: safeUid,
+    latestPresence,
+    sessionStats,
+    seasonRows,
+    accountSummary,
+    knownNicknames: [...knownNicknames].filter(Boolean)
+  };
+}
+
+function renderSeasonHistoryRows(seasonRows) {
+  if (!seasonRows.length) {
+    return `
+      <div class="player-detail-empty">
+        <strong>No season ranking history</strong>
+        <p>No matching ranking entries were found across the configured seasons.</p>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="table-wrap player-detail-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Season</th>
+            <th>Score</th>
+            <th>Rank</th>
+            <th>Submitted</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${seasonRows.map((row) => `
+            <tr>
+              <td>
+                <strong>${escapeHtml(row.seasonName)}</strong>
+                <div class="player-detail-table-sub">${escapeHtml(formatText(row.period, row.status))}</div>
+              </td>
+              <td>${formatNumber(row.score)}</td>
+              <td>#${formatNumber(row.rank)}</td>
+              <td>${formatDateTime(row.submittedAt)}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderPlayerDetail(entry, detail) {
+  const latestPresence = detail.latestPresence;
+  const sessionStats = detail.sessionStats;
+  const accountSummary = detail.accountSummary;
+
+  const identityRows = [
+    { label: "Player ID", value: formatText(detail.playerId) },
+    { label: "User ID", value: formatText(detail.uid) },
+    { label: "Known names", value: formatList(detail.knownNicknames) },
+    { label: "Current profile name", value: formatText(accountSummary?.currentNickname) },
+    { label: "Linked player IDs", value: formatList(accountSummary?.linkedPlayerIds) },
+    { label: "Last seen player ID", value: formatText(accountSummary?.lastSeenPlayerId) }
+  ];
+
+  const liveRows = [
+    { label: "Source", value: formatText(entry.sourceLabel) },
+    { label: "Live phase", value: formatPhaseLabel(latestPresence?.phase || entry.phase || "") },
+    { label: "Last seen", value: formatDateTime(latestPresence?.lastSeen || entry.lastSeen || "") },
+    { label: "30-day sessions", value: formatNumber(sessionStats.totalSessions) },
+    { label: "Latest session start", value: formatDateTime(sessionStats.latestStartedAt) },
+    { label: "Latest session end", value: formatDateTime(sessionStats.latestEndedAt) }
+  ];
+
+  openPlayerDetailModalShell({
+    title: formatText(entry.name || entry.nickname, "Player detail"),
+    subtitle: "Read-only admin lookup for ranking, presence, and seasonal history.",
+    bodyHtml: `
+      <section class="player-detail-section">
+        <h3>Identity</h3>
+        <dl class="player-detail-meta-grid">
+          ${renderMetaRows(identityRows)}
+        </dl>
+      </section>
+      <section class="player-detail-section">
+        <h3>Live status</h3>
+        <dl class="player-detail-meta-grid">
+          ${renderMetaRows(liveRows)}
+        </dl>
+      </section>
+      <section class="player-detail-section">
+        <h3>Season history</h3>
+        ${renderSeasonHistoryRows(detail.seasonRows)}
+      </section>
+    `
+  });
+}
+
+async function openPlayerDetail(entry) {
+  renderPlayerLoadingState(entry.name || entry.nickname);
+
+  try {
+    const detail = await buildPlayerLookupDetail(entry);
+    renderPlayerDetail(entry, detail);
+  } catch (error) {
+    console.error("Failed to load player detail.", error);
+    renderPlayerErrorState(entry.name || entry.nickname, error);
+  }
+}
+
+function extractLookupEntryFromEvent(event) {
+  const trigger = event.target.closest("[data-player-source]");
+  if (!trigger) {
+    return null;
+  }
+
+  const source = trigger.dataset.playerSource;
+  const index = Number.parseInt(trigger.dataset.playerIndex || "", 10);
+  if (!Number.isInteger(index) || index < 0) {
+    return null;
+  }
+
+  if (source === "ranking") {
+    const entry = adminState.rankings[index];
+    return entry ? { ...entry, sourceLabel: "Ranking table" } : null;
+  }
+
+  if (source === "presence") {
+    const entry = adminState.activePresence[index];
+    return entry ? { ...entry, sourceLabel: "Presence table", name: entry.nickname } : null;
+  }
+
+  return null;
+}
+
+function bindPlayerLookupTriggers() {
+  const handleLookup = (event) => {
+    const entry = extractLookupEntryFromEvent(event);
+    if (!entry) {
+      return;
+    }
+
+    event.preventDefault();
+    void openPlayerDetail(entry);
+  };
+
+  elements.rankingTableBody.addEventListener("click", handleLookup);
+  elements.presenceTableBody.addEventListener("click", handleLookup);
+}
+
 function renderEmptyRow(tbody, columns, message) {
   tbody.innerHTML = `<tr class="empty-row"><td colspan="${columns}">${escapeHtml(message)}</td></tr>`;
 }
 
 function renderRankings(rankings) {
   if (!rankings.length) {
-    renderEmptyRow(elements.rankingTableBody, 4, "아직 저장된 랭킹이 없어요.");
+    renderEmptyRow(elements.rankingTableBody, 4, "No rankings yet.");
     return;
   }
 
   elements.rankingTableBody.innerHTML = rankings.map((entry, index) => `
     <tr>
       <td>${index + 1}</td>
-      <td>${escapeHtml(entry.name)}</td>
+      <td>
+        <button
+          type="button"
+          class="player-link-button"
+          data-player-source="ranking"
+          data-player-index="${index}"
+        >${escapeHtml(entry.name)}</button>
+      </td>
       <td>${formatNumber(entry.score)}</td>
       <td>${formatDateTime(entry.submittedAt)}</td>
     </tr>
@@ -260,14 +629,21 @@ function renderRankings(rankings) {
 
 function renderPresence(entries) {
   if (!entries.length) {
-    renderEmptyRow(elements.presenceTableBody, 3, "현재 접속 중인 플레이어가 없어요.");
+    renderEmptyRow(elements.presenceTableBody, 3, "No active players.");
     return;
   }
 
-  elements.presenceTableBody.innerHTML = entries.map((entry) => `
+  elements.presenceTableBody.innerHTML = entries.map((entry, index) => `
     <tr>
-      <td>${escapeHtml(entry.nickname || "이름 없음")}</td>
-      <td><span class="phase-pill">${escapeHtml(PHASE_LABELS[entry.phase] || entry.phase)}</span></td>
+      <td>
+        <button
+          type="button"
+          class="player-link-button"
+          data-player-source="presence"
+          data-player-index="${index}"
+        >${escapeHtml(entry.nickname || "Unknown")}</button>
+      </td>
+      <td><span class="phase-pill">${escapeHtml(formatPhaseLabel(entry.phase))}</span></td>
       <td>${formatAgo(entry.lastSeen)}</td>
     </tr>
   `).join("");
@@ -282,7 +658,7 @@ function setTrafficCard(periodKey, stats) {
   }
 
   uniqueElement.textContent = formatNumber(stats.uniquePlayers);
-  metaElement.textContent = `총 ${formatNumber(stats.totalSessions)}세션`;
+  metaElement.textContent = `${formatNumber(stats.totalSessions)} sessions`;
 }
 
 function resetTrafficCards() {
@@ -295,7 +671,7 @@ function resetTrafficCards() {
     }
 
     if (metaElement) {
-      metaElement.textContent = "데이터 없음";
+      metaElement.textContent = "No data";
     }
   });
 }
@@ -331,7 +707,7 @@ function toSessionEntry(entryDoc) {
   return {
     sessionId: entryDoc.id,
     playerId: String(data.playerId || ""),
-    nickname: normalizeName(data.nickname) || "플레이어",
+    nickname: normalizeName(data.nickname) || "Player",
     phase: String(data.phase || "ready"),
     startedAt: typeof data.startedAt === "string" ? data.startedAt : "",
     endedAt: typeof data.endedAt === "string" ? data.endedAt : "",
@@ -347,8 +723,6 @@ function isValidIso(value) {
 function buildPeriodStats(sessionEntries, definition) {
   const startTime = getPeriodStartDate(definition.dayOffset).getTime();
   const uniquePlayers = new Set();
-  let latestVisit = "";
-
   const matchedEntries = sessionEntries.filter((entry) => {
     const startedAt = new Date(entry.startedAt).getTime();
     return !Number.isNaN(startedAt) && startedAt >= startTime;
@@ -358,20 +732,13 @@ function buildPeriodStats(sessionEntries, definition) {
     if (entry.playerId) {
       uniquePlayers.add(entry.playerId);
     }
-
-    if (!latestVisit || entry.startedAt > latestVisit) {
-      latestVisit = entry.startedAt;
-    }
   });
 
   return {
     key: definition.key,
     label: definition.label,
-    cardLabel: definition.cardLabel,
     uniquePlayers: uniquePlayers.size,
-    totalSessions: matchedEntries.length,
-    averageSessionsPerDay: matchedEntries.length / definition.days,
-    latestVisit
+    totalSessions: matchedEntries.length
   };
 }
 
@@ -380,8 +747,7 @@ function buildDailyStats(sessionEntries) {
   const dailyStats = new Map(dayKeys.map((dayKey) => [dayKey, {
     dayKey,
     totalSessions: 0,
-    uniquePlayers: new Set(),
-    latestVisit: ""
+    uniquePlayers: new Set()
   }]));
 
   sessionEntries.forEach((entry) => {
@@ -400,10 +766,6 @@ function buildDailyStats(sessionEntries) {
     if (entry.playerId) {
       bucket.uniquePlayers.add(entry.playerId);
     }
-
-    if (!bucket.latestVisit || entry.startedAt > bucket.latestVisit) {
-      bucket.latestVisit = entry.startedAt;
-    }
   });
 
   return dayKeys.map((dayKey) => {
@@ -411,45 +773,44 @@ function buildDailyStats(sessionEntries) {
     return {
       dayKey,
       totalSessions: bucket.totalSessions,
-      uniquePlayers: bucket.uniquePlayers.size,
-      latestVisit: bucket.latestVisit
+      uniquePlayers: bucket.uniquePlayers.size
     };
   });
 }
 
-// --- Chart ---
-
-let barHitAreas = [];
-
 function setupChartTooltip() {
   const canvas = elements.trendChart;
   const tooltip = elements.chartTooltip;
-  if (!canvas || !tooltip) return;
+  if (!canvas || !tooltip) {
+    return;
+  }
 
   canvas.addEventListener("mousemove", (event) => {
     const rect = canvas.getBoundingClientRect();
     const mouseX = event.clientX - rect.left;
     const mouseY = event.clientY - rect.top;
 
-    const hit = barHitAreas.find(
-      (area) => mouseX >= area.x && mouseX < area.x + area.w &&
-                mouseY >= area.hitTop && mouseY < area.hitBottom
-    );
+    const hit = barHitAreas.find((area) => (
+      mouseX >= area.x
+      && mouseX < area.x + area.w
+      && mouseY >= area.hitTop
+      && mouseY < area.hitBottom
+    ));
 
-    if (hit) {
-      tooltip.innerHTML =
-        `<strong>${hit.entry.dayKey}</strong><br>` +
-        `방문자 ${formatNumber(hit.entry.uniquePlayers)}명 · 세션 ${formatNumber(hit.entry.totalSessions)}`;
-
-      const centerX = hit.x + hit.w / 2;
-      const fromRight = centerX > rect.width / 2;
-      tooltip.style.left = fromRight ? "auto" : `${Math.max(4, hit.x)}px`;
-      tooltip.style.right = fromRight ? `${Math.max(4, rect.width - hit.x - hit.w)}px` : "auto";
-      tooltip.style.top = `${Math.max(36, hit.barY)}px`;
-      tooltip.classList.add("visible");
-    } else {
+    if (!hit) {
       tooltip.classList.remove("visible");
+      return;
     }
+
+    tooltip.innerHTML = `
+      <strong>${escapeHtml(hit.entry.dayKey)}</strong><br>
+      Visitors ${formatNumber(hit.entry.uniquePlayers)}<br>
+      Sessions ${formatNumber(hit.entry.totalSessions)}
+    `;
+    tooltip.style.left = `${Math.max(4, hit.x)}px`;
+    tooltip.style.right = "auto";
+    tooltip.style.top = `${Math.max(36, hit.barY)}px`;
+    tooltip.classList.add("visible");
   });
 
   canvas.addEventListener("mouseleave", () => {
@@ -459,121 +820,79 @@ function setupChartTooltip() {
 
 function renderTrendChart(dailyStats) {
   const canvas = elements.trendChart;
-  if (!canvas) return;
-
-  // oldest → newest (left to right)
-  const data = [...dailyStats].reverse();
-
-  const dpr = window.devicePixelRatio || 1;
-  const W = canvas.offsetWidth;
-  const H = canvas.offsetHeight;
-  if (!W || !H) return;
-
-  canvas.width = W * dpr;
-  canvas.height = H * dpr;
-
-  const ctx = canvas.getContext("2d");
-  ctx.scale(dpr, dpr);
-
-  const PAD = { top: 20, right: 12, bottom: 36, left: 38 };
-  const chartW = W - PAD.left - PAD.right;
-  const chartH = H - PAD.top - PAD.bottom;
-
-  const maxVal = Math.max(...data.map((d) => d.uniquePlayers), 1);
-
-  // Y gridlines + labels
-  const ySteps = 4;
-  for (let i = 0; i <= ySteps; i++) {
-    const y = PAD.top + chartH * (1 - i / ySteps);
-
-    ctx.strokeStyle = "rgba(165, 119, 82, 0.14)";
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(PAD.left, y);
-    ctx.lineTo(PAD.left + chartW, y);
-    ctx.stroke();
-
-    if (i > 0) {
-      ctx.fillStyle = "rgba(122, 94, 79, 0.65)";
-      ctx.font = '11px "Noto Sans KR", sans-serif';
-      ctx.textAlign = "right";
-      ctx.textBaseline = "middle";
-      ctx.fillText(Math.round((i / ySteps) * maxVal), PAD.left - 6, y);
-    }
+  if (!canvas) {
+    return;
   }
 
-  const barCount = data.length;
-  const gap = 2;
-  const barW = Math.max(3, (chartW - gap * (barCount - 1)) / barCount);
+  const data = [...dailyStats].reverse();
+  const dpr = window.devicePixelRatio || 1;
+  const width = canvas.offsetWidth;
+  const height = canvas.offsetHeight;
+  if (!width || !height) {
+    return;
+  }
+
+  canvas.width = width * dpr;
+  canvas.height = height * dpr;
+
+  const context = canvas.getContext("2d");
+  context.setTransform(1, 0, 0, 1, 0, 0);
+  context.scale(dpr, dpr);
+  context.clearRect(0, 0, width, height);
+
+  const padding = { top: 20, right: 12, bottom: 36, left: 38 };
+  const chartWidth = width - padding.left - padding.right;
+  const chartHeight = height - padding.top - padding.bottom;
+  const maxValue = Math.max(...data.map((entry) => entry.uniquePlayers), 1);
+  const barGap = 2;
+  const barWidth = Math.max(3, (chartWidth - barGap * Math.max(0, data.length - 1)) / Math.max(1, data.length));
 
   barHitAreas = [];
 
-  data.forEach((entry, i) => {
-    const x = PAD.left + i * (barW + gap);
-    const barH = (entry.uniquePlayers / maxVal) * chartH;
-    const barY = PAD.top + chartH - barH;
+  data.forEach((entry, index) => {
+    const x = padding.left + index * (barWidth + barGap);
+    const barHeight = (entry.uniquePlayers / maxValue) * chartHeight;
+    const barY = padding.top + chartHeight - barHeight;
+
+    context.fillStyle = barHeight > 1 ? "#d96f2b" : "rgba(217, 111, 43, 0.2)";
+    context.fillRect(x, Math.max(barY, padding.top + chartHeight - 2), barWidth, Math.max(barHeight, 2));
 
     barHitAreas.push({
       x,
-      w: barW + gap,
+      w: barWidth + barGap,
       barY,
-      hitTop: PAD.top,
-      hitBottom: PAD.top + chartH,
+      hitTop: padding.top,
+      hitBottom: padding.top + chartHeight,
       entry
     });
-
-    if (barH > 1) {
-      const grad = ctx.createLinearGradient(0, barY, 0, PAD.top + chartH);
-      grad.addColorStop(0, "#ffb277");
-      grad.addColorStop(1, "#d96f2b");
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.roundRect(x, barY, barW, barH, [3, 3, 0, 0]);
-      ctx.fill();
-    } else {
-      ctx.fillStyle = "rgba(217, 111, 43, 0.2)";
-      ctx.fillRect(x, PAD.top + chartH - 2, barW, 2);
-    }
-
-    // X labels every 5 days
-    if (i % 5 === 0) {
-      ctx.fillStyle = "rgba(122, 94, 79, 0.65)";
-      ctx.font = '10px "Noto Sans KR", sans-serif';
-      ctx.textAlign = "center";
-      ctx.textBaseline = "top";
-      ctx.fillText(entry.dayKey.slice(5), x + barW / 2, PAD.top + chartH + 8);
-    }
   });
 }
-
-// --- Analytics ---
 
 function renderAnalytics(sessionEntries) {
   const periodStats = PERIOD_DEFINITIONS.map((definition) => buildPeriodStats(sessionEntries, definition));
   const dailyStats = buildDailyStats(sessionEntries);
-
   periodStats.forEach((stats) => setTrafficCard(stats.key, stats));
   renderTrendChart(dailyStats);
   elements.trendChartStatus.textContent = sessionEntries.length
-    ? `최근 30일 ${formatNumber(sessionEntries.length)}세션 기준`
-    : "배포 후 새 접속부터 집계됩니다.";
+    ? `Based on ${formatNumber(sessionEntries.length)} recent sessions`
+    : "No recent session data";
 }
 
 function applyRankingFailure() {
-  renderEmptyRow(elements.rankingTableBody, 4, "랭킹을 불러오지 못했어요.");
+  renderEmptyRow(elements.rankingTableBody, 4, "Could not load rankings.");
   elements.rankingCount.textContent = "-";
-  elements.rankingStatus.textContent = "불러오기 실패";
+  elements.rankingStatus.textContent = "Load failed";
 }
 
 function applyPresenceFailure() {
-  renderEmptyRow(elements.presenceTableBody, 3, "접속자 정보를 불러오지 못했어요.");
+  renderEmptyRow(elements.presenceTableBody, 3, "Could not load live presence.");
   elements.activeCount.textContent = "-";
-  elements.presenceStatus.textContent = "불러오기 실패";
+  elements.presenceStatus.textContent = "Load failed";
 }
 
 function applyAnalyticsFailure() {
   resetTrafficCards();
-  elements.trendChartStatus.textContent = "불러오기 실패";
+  elements.trendChartStatus.textContent = "Load failed";
 }
 
 async function fetchAllRankings() {
@@ -585,7 +904,8 @@ async function fetchAllRankings() {
       const data = entryDoc.data();
       return {
         playerId: String(data.playerId || ""),
-        name: normalizeName(data.name),
+        uid: String(data.uid || "").trim(),
+        name: normalizeName(data.nicknameSnapshot || data.name),
         score: Math.floor(Number(data.score)),
         submittedAt: typeof data.submittedAt === "string" ? data.submittedAt : ""
       };
@@ -606,8 +926,10 @@ async function fetchActivePresence() {
   return snapshot.docs.map((entryDoc) => {
     const data = entryDoc.data();
     return {
-      nickname: normalizeName(data.nickname) || "플레이어",
+      playerId: String(data.playerId || ""),
+      nickname: normalizeName(data.nickname) || "Player",
       phase: String(data.phase || "ready"),
+      page: String(data.page || ""),
       lastSeen: typeof data.lastSeen === "string" ? data.lastSeen : ""
     };
   });
@@ -629,9 +951,9 @@ async function fetchRecentSessions() {
 
 async function refreshAdminData() {
   elements.refreshButton.disabled = true;
-  elements.presenceStatus.textContent = "불러오는 중...";
-  elements.rankingStatus.textContent = "불러오는 중...";
-  elements.trendChartStatus.textContent = "불러오는 중...";
+  elements.presenceStatus.textContent = "Loading...";
+  elements.rankingStatus.textContent = "Loading...";
+  elements.trendChartStatus.textContent = "Loading...";
 
   const [rankingsResult, presenceResult, sessionsResult] = await Promise.allSettled([
     fetchAllRankings(),
@@ -641,28 +963,34 @@ async function refreshAdminData() {
 
   if (rankingsResult.status === "fulfilled") {
     const rankings = rankingsResult.value;
+    adminState.rankings = rankings;
     renderRankings(rankings);
     elements.rankingCount.textContent = formatNumber(rankings.length);
-    elements.rankingStatus.textContent = `${CURRENT_SEASON_META.displayName} / ${formatNumber(rankings.length)}명 기록`;
+    elements.rankingStatus.textContent = `${CURRENT_SEASON_META.displayName} / ${formatNumber(rankings.length)} records`;
   } else {
     console.error(rankingsResult.reason);
+    adminState.rankings = [];
     applyRankingFailure();
   }
 
   if (presenceResult.status === "fulfilled") {
     const activeEntries = presenceResult.value;
+    adminState.activePresence = activeEntries;
     renderPresence(activeEntries);
     elements.activeCount.textContent = formatNumber(activeEntries.length);
-    elements.presenceStatus.textContent = activeEntries.length ? "실시간 추정치" : "현재 0명";
+    elements.presenceStatus.textContent = activeEntries.length ? "Estimated live presence" : "No active presence";
   } else {
     console.error(presenceResult.reason);
+    adminState.activePresence = [];
     applyPresenceFailure();
   }
 
   if (sessionsResult.status === "fulfilled") {
+    adminState.recentSessions = sessionsResult.value;
     renderAnalytics(sessionsResult.value);
   } else {
     console.error(sessionsResult.reason);
+    adminState.recentSessions = [];
     applyAnalyticsFailure();
   }
 
@@ -678,7 +1006,9 @@ async function bootstrapAdminDashboard() {
     return;
   }
 
+  ensurePlayerModal();
   setupChartTooltip();
+  bindPlayerLookupTriggers();
 
   elements.refreshButton.addEventListener("click", () => {
     void refreshAdminData();

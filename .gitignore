@@ -8,3 +8,7 @@ Thumbs.db
 .env
 .env.*
 public/scene/
+.claude/
+data/admin-*.json
+data/firestore-backup-*.json
+docs/reference/ui/tmp-*.png

@@ -1,0 +1,290 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function signedInAs(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function validNickname(value) {
+      return value is string && value.size() > 0 && value.size() <= 12;
+    }
+
+    function validMessageDoc(messageId) {
+      return request.resource.data.keys().hasOnly([
+        "messageId",
+        "type",
+        "title",
+        "body",
+        "season",
+        "seasonLabel",
+        "rank",
+        "rewardCurrency",
+        "rewardAmount",
+        "claimable",
+        "claimed",
+        "sentAt",
+        "claimedAt"
+      ]) &&
+      request.resource.data.messageId == messageId &&
+      request.resource.data.type is string &&
+      request.resource.data.title is string &&
+      request.resource.data.body is string &&
+      request.resource.data.season is int &&
+      request.resource.data.seasonLabel is string &&
+      request.resource.data.rank is int &&
+      request.resource.data.rewardCurrency is string &&
+      request.resource.data.rewardAmount is int &&
+      request.resource.data.rewardAmount >= 0 &&
+      request.resource.data.claimable is bool &&
+      request.resource.data.claimed is bool &&
+      request.resource.data.sentAt is string &&
+      request.resource.data.claimedAt is string;
+    }
+
+    function validRankingOwner() {
+      return request.resource.data.uid == "" ||
+        (signedIn() && request.resource.data.uid == request.auth.uid);
+    }
+
+    function validRankingDoc(playerId) {
+      return request.resource.data.keys().hasOnly([
+        "playerId",
+        "uid",
+        "nicknameSnapshot",
+        "name",
+        "score",
+        "submittedAt"
+      ]) &&
+      request.resource.data.playerId == playerId &&
+      request.resource.data.uid is string &&
+      validNickname(request.resource.data.nicknameSnapshot) &&
+      request.resource.data.name == request.resource.data.nicknameSnapshot &&
+      request.resource.data.score is int &&
+      request.resource.data.score >= 0 &&
+      request.resource.data.submittedAt is string;
+    }
+
+    function validOptionalString(value) {
+      return value == null || value is string;
+    }
+
+    function validOptionalNickname(value) {
+      return value == null || value == "" || validNickname(value);
+    }
+
+    function validOptionalInt(value) {
+      return value == null || value is int;
+    }
+
+    function validOptionalTimestamp(value) {
+      return value == null || value is timestamp;
+    }
+
+    function validOptionalList(value) {
+      return value == null || value is list;
+    }
+
+    function validUserDoc(uid) {
+      return request.resource.data.keys().hasOnly([
+        "uid",
+        "email",
+        "displayName",
+        "currentNickname",
+        "providerIds",
+        "lastSeenPlayerId",
+        "lastNickname",
+        "lastLoginAt",
+        "updatedAt",
+        "createdAt",
+        "hujupayBalance",
+        "hujupayEarnedTotal",
+        "linkedPlayerIds",
+        "firstLinkedPlayerId",
+        "ownedSkins",
+        "equippedSkin"
+      ]) &&
+      request.resource.data.uid == uid &&
+      validOptionalString(request.resource.data.email) &&
+      validOptionalNickname(request.resource.data.displayName) &&
+      validOptionalNickname(request.resource.data.currentNickname) &&
+      validOptionalNickname(request.resource.data.lastNickname) &&
+      validOptionalString(request.resource.data.lastSeenPlayerId) &&
+      validOptionalString(request.resource.data.firstLinkedPlayerId) &&
+      validOptionalString(request.resource.data.equippedSkin) &&
+      validOptionalList(request.resource.data.providerIds) &&
+      validOptionalList(request.resource.data.linkedPlayerIds) &&
+      validOptionalList(request.resource.data.ownedSkins) &&
+      validOptionalInt(request.resource.data.hujupayBalance) &&
+      validOptionalInt(request.resource.data.hujupayEarnedTotal) &&
+      validOptionalTimestamp(request.resource.data.lastLoginAt) &&
+      validOptionalTimestamp(request.resource.data.updatedAt) &&
+      validOptionalTimestamp(request.resource.data.createdAt);
+    }
+
+    function validChatDoc() {
+      return request.resource.data.keys().hasOnly([
+        "uid",
+        "nicknameSnapshot",
+        "text",
+        "createdAt"
+      ]) &&
+      request.resource.data.uid == request.auth.uid &&
+      validNickname(request.resource.data.nicknameSnapshot) &&
+      request.resource.data.text is string &&
+      request.resource.data.text.size() > 0 &&
+      request.resource.data.text.size() <= 60 &&
+      request.resource.data.createdAt is string;
+    }
+
+    match /rankings/{playerId} {
+      allow read: if true;
+      allow create: if validRankingDoc(playerId) && validRankingOwner();
+      allow update: if validRankingDoc(playerId) &&
+        validRankingOwner() &&
+        request.resource.data.playerId == resource.data.playerId &&
+        request.resource.data.score >= resource.data.score &&
+        (
+          request.resource.data.score > resource.data.score ||
+          request.resource.data.submittedAt == resource.data.submittedAt
+        );
+      allow delete: if false;
+    }
+
+    match /{seasonCollection}/{playerId} {
+      allow read: if seasonCollection.matches("rankings_season[0-9]+") ||
+        seasonCollection.matches("backup_[0-9_]+_rankings(_season[0-9]+)?");
+
+      allow create: if seasonCollection.matches("rankings_season[0-9]+") &&
+        validRankingDoc(playerId) &&
+        validRankingOwner();
+
+      allow update: if seasonCollection.matches("rankings_season[0-9]+") &&
+        validRankingDoc(playerId) &&
+        validRankingOwner() &&
+        request.resource.data.playerId == resource.data.playerId &&
+        request.resource.data.score >= resource.data.score &&
+        (
+          request.resource.data.score > resource.data.score ||
+          request.resource.data.submittedAt == resource.data.submittedAt
+        );
+
+      allow delete: if false;
+    }
+
+    match /users/{uid} {
+      allow read: if signedInAs(uid);
+      allow create: if signedInAs(uid) &&
+        validUserDoc(uid) &&
+        (request.resource.data.hujupayBalance == null || request.resource.data.hujupayBalance == 0) &&
+        (request.resource.data.hujupayEarnedTotal == null || request.resource.data.hujupayEarnedTotal == 0) &&
+        (!request.resource.data.keys().hasAny(["ownedSkins"]) || request.resource.data.ownedSkins.size() == 0) &&
+        (!request.resource.data.keys().hasAny(["equippedSkin"]) || request.resource.data.equippedSkin == "skin_0");
+      allow update: if signedInAs(uid) &&
+        validUserDoc(uid) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          "email",
+          "displayName",
+          "currentNickname",
+          "providerIds",
+          "lastSeenPlayerId",
+          "lastNickname",
+          "lastLoginAt",
+          "updatedAt",
+          "linkedPlayerIds",
+          "firstLinkedPlayerId"
+        ]);
+      allow delete: if false;
+    }
+
+    match /users/{uid}/seasons/{seasonId} {
+      allow read: if signedInAs(uid);
+      allow create, update: if false;
+      allow delete: if false;
+    }
+
+    match /users/{uid}/messages/{messageId} {
+      allow read: if signedInAs(uid);
+      allow create, update: if false;
+      allow delete: if false;
+    }
+
+    match /lobbyChat/{messageId} {
+      allow read: if true;
+      allow create: if signedIn() && validChatDoc();
+      allow update, delete: if false;
+    }
+
+    match /identityLinks/{playerId} {
+      allow read: if false;
+
+      allow create: if signedIn() &&
+        request.resource.data.playerId == playerId &&
+        request.resource.data.uid == request.auth.uid;
+
+      allow update: if signedIn() &&
+        request.resource.data.playerId == playerId &&
+        (
+          resource.data.uid == request.auth.uid ||
+          request.resource.data.conflictUid == request.auth.uid
+        );
+
+      allow delete: if false;
+    }
+
+    match /presence/{playerId} {
+      allow read: if signedIn();
+
+      allow create, update: if request.resource.data.keys().hasOnly([
+        "playerId",
+        "nickname",
+        "phase",
+        "page",
+        "lastSeen"
+      ]) &&
+      request.resource.data.playerId == playerId &&
+      request.resource.data.nickname is string &&
+      request.resource.data.phase is string &&
+      request.resource.data.page is string &&
+      request.resource.data.lastSeen is string;
+
+      allow delete: if true;
+    }
+
+    match /presenceSessions/{sessionId} {
+      allow read: if signedIn();
+
+      allow create, update: if request.resource.data.keys().hasOnly([
+        "sessionId",
+        "playerId",
+        "nickname",
+        "phase",
+        "page",
+        "startedAt",
+        "lastSeen",
+        "endedAt"
+      ]) &&
+      request.resource.data.sessionId == sessionId &&
+      request.resource.data.playerId is string &&
+      request.resource.data.nickname is string &&
+      request.resource.data.phase is string &&
+      request.resource.data.page is string &&
+      request.resource.data.startedAt is string &&
+      request.resource.data.lastSeen is string &&
+      (
+        !request.resource.data.keys().hasAny(["endedAt"]) ||
+        request.resource.data.endedAt is string
+      );
+
+      allow delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

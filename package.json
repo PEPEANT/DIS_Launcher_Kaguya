@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "chroma:key": "node scripts/chroma-key.mjs",
+    "admin:season-payout": "node scripts/admin-season-payout.mjs",
+    "admin:user": "node scripts/admin-user-actions.mjs",
     "start": "npm run chroma:key && node server.mjs",
     "start:app": "npm run chroma:key && node servers/app-server.mjs",
     "start:ranking": "node servers/ranking-server.mjs"

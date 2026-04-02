@@ -2,6 +2,14 @@ const baseUrl = typeof window === "undefined"
   ? ""
   : String(window.__APP_CONFIG__?.rankingApiBaseUrl || "").replace(/\/$/, "");
 
+function getSearchParams() {
+  if (typeof window === "undefined") {
+    return new URLSearchParams();
+  }
+
+  return new URLSearchParams(window.location.search || "");
+}
+
 function getAppConfig() {
   return typeof window === "undefined" ? {} : window.__APP_CONFIG__ || {};
 }
@@ -9,6 +17,16 @@ function getAppConfig() {
 function normalizeSeasonNumber(value) {
   const safeSeason = Math.floor(Number(value));
   return Number.isFinite(safeSeason) && safeSeason >= 1 ? safeSeason : null;
+}
+
+function normalizeContentSeasonId(value) {
+  const safeValue = String(value || "").trim().toLowerCase();
+  return /^s\d+$/u.test(safeValue) ? safeValue : null;
+}
+
+function normalizeBooleanFlag(value) {
+  const safeValue = String(value || "").trim().toLowerCase();
+  return ["1", "true", "yes", "on"].includes(safeValue);
 }
 
 export function getRankingApiUrl(path) {
@@ -81,6 +99,55 @@ export function getRankingSeasonCollection(season = getCurrentRankingSeason()) {
   return getRankingSeasonConfig(season).firebaseCollection;
 }
 
+export function getCurrentContentSeasonId() {
+  const requestedSeasonId = normalizeContentSeasonId(getSearchParams().get("contentSeason"));
+  if (requestedSeasonId) {
+    return requestedSeasonId;
+  }
+
+  return normalizeContentSeasonId(getAppConfig().gameContent?.currentSeasonId) || "s1";
+}
+
+export function getAvailableContentSeasons() {
+  const configuredSeasons = Array.isArray(getAppConfig().gameContent?.seasons)
+    ? getAppConfig().gameContent.seasons
+    : [];
+
+  const seasons = configuredSeasons
+    .map((seasonConfig) => {
+      const id = normalizeContentSeasonId(seasonConfig?.id);
+      if (!id) {
+        return null;
+      }
+
+      return {
+        id,
+        displayName: String(seasonConfig?.displayName || id.toUpperCase()),
+        notes: String(seasonConfig?.notes || "")
+      };
+    })
+    .filter(Boolean);
+
+  if (seasons.length) {
+    return seasons;
+  }
+
+  return [{
+    id: getCurrentContentSeasonId(),
+    displayName: getCurrentContentSeasonId().toUpperCase(),
+    notes: ""
+  }];
+}
+
+export function getContentSeasonConfig(seasonId = getCurrentContentSeasonId()) {
+  const safeSeasonId = normalizeContentSeasonId(seasonId) || getCurrentContentSeasonId();
+  return getAvailableContentSeasons().find((seasonConfig) => seasonConfig.id === safeSeasonId) || {
+    id: safeSeasonId,
+    displayName: safeSeasonId.toUpperCase(),
+    notes: ""
+  };
+}
+
 export function getAdminAccessConfig() {
   const config = getAppConfig().adminAccess || {};
   const allowedEmails = Array.isArray(config.allowedEmails)
@@ -91,6 +158,10 @@ export function getAdminAccessConfig() {
     requiresSignIn: config.requiresSignIn !== false,
     allowedEmails
   };
+}
+
+export function isPlaytestMode() {
+  return normalizeBooleanFlag(getSearchParams().get("playtest"));
 }
 
 export function getAssetBaseUrl() {

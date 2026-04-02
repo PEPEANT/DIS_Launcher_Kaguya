@@ -1,12 +1,29 @@
 import { elements } from "./dom.js";
+import { FINAL_BOSS_PREP_CONFIG } from "./config/final-boss-prep.js";
 import { GROUND_Y, VIRTUAL_HEIGHT, VIRTUAL_WIDTH } from "./constants.js";
+import { DEFAULT_SKIN_ID, getPlayerSkinAssetKey } from "./config/skins.js";
+import { isTouchDevice } from "./device.js";
 import { t } from "./i18n.js";
 import { state } from "./state.js";
 
 const ctx = elements.canvas.getContext("2d");
+const PLAYER_SPRITE_SOURCE_CROPS = Object.freeze({
+  down: Object.freeze({ x: 259, y: 27, width: 436, height: 523 }),
+  downWalk1: Object.freeze({ x: 222, y: 80, width: 1934, height: 1561 }),
+  downWalk2: Object.freeze({ x: 235, y: 85, width: 2047, height: 1678 })
+});
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
+}
+
+function lerp(start, end, ratio) {
+  return start + (end - start) * ratio;
+}
+
+function toRgba(color, alpha = 1) {
+  const safeColor = Array.isArray(color) && color.length >= 3 ? color : [255, 255, 255];
+  return `rgba(${safeColor[0]}, ${safeColor[1]}, ${safeColor[2]}, ${clamp(alpha, 0, 1)})`;
 }
 
 function roundRect(context, x, y, width, height, radius) {
@@ -19,18 +36,11 @@ function roundRect(context, x, y, width, height, radius) {
   context.closePath();
 }
 
-function drawBackground() {
-  ctx.clearRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
-
-  const background = state.assets?.[state.roundBackgroundKey];
-
-  if (!background) {
-    ctx.fillStyle = "#eadccf";
-    ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+function drawCoverImage(image, alpha = 1) {
+  if (!image) {
     return;
   }
 
-  const image = background;
   const imageRatio = image.width / image.height;
   const canvasRatio = VIRTUAL_WIDTH / VIRTUAL_HEIGHT;
 
@@ -49,13 +59,43 @@ function drawBackground() {
     offsetY = (VIRTUAL_HEIGHT - drawHeight) / 2;
   }
 
+  ctx.save();
+  ctx.globalAlpha = alpha;
   ctx.drawImage(image, offsetX, offsetY, drawWidth, drawHeight);
+  ctx.restore();
+}
+
+function drawBackground() {
+  ctx.clearRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+
+  const background = state.assets?.[state.roundBackgroundKey];
+  const transitionFromBackground = state.assets?.[state.backgroundTransitionFromKey];
+  const blendRatio = state.backgroundTransitionFromKey && state.backgroundTransitionDuration > 0
+    ? clamp((state.elapsed - state.backgroundTransitionStartAt) / state.backgroundTransitionDuration, 0, 1)
+    : 1;
+
+  if (!background && !transitionFromBackground) {
+    ctx.fillStyle = "#eadccf";
+    ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+    return;
+  }
+
+  if (transitionFromBackground && blendRatio < 1) {
+    drawCoverImage(transitionFromBackground, 1);
+    drawCoverImage(background, blendRatio);
+  } else {
+    drawCoverImage(background || transitionFromBackground, 1);
+  }
+
+  drawFinalBossMoonMask();
 
   const tint = ctx.createLinearGradient(0, 0, 0, VIRTUAL_HEIGHT);
   tint.addColorStop(0, "rgba(255, 252, 247, 0.10)");
   tint.addColorStop(1, "rgba(58, 29, 10, 0.14)");
   ctx.fillStyle = tint;
   ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+
+  drawBackgroundParticles();
 }
 
 function drawRoundBanner() {
@@ -183,24 +223,126 @@ function drawTopHud() {
   drawHealthBar();
 }
 
-function getPlayerSprite() {
+function drawSlideCooldownHud() {
+  if (state.phase !== "playing" || isTouchDevice()) {
+    return;
+  }
+
+  const remaining = Math.max(0, state.player.slideCooldownUntil - state.elapsed);
+  if (remaining <= 0.01) {
+    return;
+  }
+
+  const label = `${t("slide.cooldownLabel")} ${t("chat.cooldown").replace("{seconds}", remaining.toFixed(1))}`;
+  const width = 156;
+  const height = 36;
+  const x = VIRTUAL_WIDTH - width - 24;
+  const y = VIRTUAL_HEIGHT - height - 22;
+
+  ctx.save();
+  ctx.fillStyle = "rgba(38, 21, 15, 0.3)";
+  roundRect(ctx, x, y, width, height, 16);
+  ctx.fill();
+
+  ctx.strokeStyle = "rgba(255, 240, 226, 0.2)";
+  ctx.lineWidth = 1;
+  roundRect(ctx, x, y, width, height, 16);
+  ctx.stroke();
+
+  ctx.fillStyle = "#fff6ee";
+  ctx.font = '700 18px "Do Hyeon", "Noto Sans KR", "Noto Sans JP", sans-serif';
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(label, x + width / 2, y + height / 2 + 1);
+  ctx.restore();
+}
+
+function getPlayerSpriteSelection() {
   if (!state.assets) {
     return null;
   }
 
+  const equippedSkin = state.equippedSkin || DEFAULT_SKIN_ID;
+  const crouchSpriteKey = getPlayerSkinAssetKey(equippedSkin, "down");
+  const crouchSprite = state.assets[crouchSpriteKey]
+    || state.assets.down
+    || state.assets[getPlayerSkinAssetKey(equippedSkin, "idle")]
+    || state.assets.idle;
+  const slideSprite = state.assets.slide || crouchSprite;
+
   if (state.damageTimer > 0) {
-    return state.assets.damage;
+    const damageKey = getPlayerSkinAssetKey(equippedSkin, "damage");
+    return {
+      key: damageKey,
+      image: state.assets[damageKey] || state.assets.damage
+    };
+  }
+
+  if (state.player.isSliding) {
+    return {
+      key: state.assets.slide ? "slide" : crouchSpriteKey,
+      image: slideSprite
+    };
+  }
+
+  if (state.player.slideRecoveryTimer > 0) {
+    return {
+      key: state.assets.slide ? "slide" : crouchSpriteKey,
+      image: slideSprite
+    };
+  }
+
+  if (state.yummyTimer > 0) {
+    const idleKey = getPlayerSkinAssetKey(equippedSkin, "idle");
+    return {
+      key: state.assets.happy ? "happy" : idleKey,
+      image: state.assets.happy
+        || state.assets[idleKey]
+        || state.assets.idle
+    };
+  }
+
+  if (state.player.isCrouching) {
+    if (state.input.left || state.input.right) {
+      const crouchWalkKey = Math.floor(state.player.walkTime) % 2 === 0 ? "downWalk1" : "downWalk2";
+      return {
+        key: state.assets[crouchWalkKey] ? crouchWalkKey : crouchSpriteKey,
+        image: state.assets[crouchWalkKey] || crouchSprite
+      };
+    }
+
+    return {
+      key: crouchSpriteKey,
+      image: crouchSprite
+    };
   }
 
   if (!state.player.onGround) {
-    return state.assets.jump;
+    const jumpKey = getPlayerSkinAssetKey(equippedSkin, "jump");
+    return {
+      key: jumpKey,
+      image: state.assets[jumpKey] || state.assets.jump
+    };
   }
 
   if (state.input.left || state.input.right) {
-    return Math.floor(state.player.walkTime) % 2 === 0 ? state.assets.walk1 : state.assets.walk2;
+    const walkKey = Math.floor(state.player.walkTime) % 2 === 0 ? "walk1" : "walk2";
+    const resolvedWalkKey = getPlayerSkinAssetKey(equippedSkin, walkKey);
+    return {
+      key: resolvedWalkKey,
+      image: state.assets[resolvedWalkKey] || state.assets[walkKey]
+    };
   }
 
-  return state.assets.idle;
+  const idleKey = getPlayerSkinAssetKey(equippedSkin, "idle");
+  return {
+    key: idleKey,
+    image: state.assets[idleKey] || state.assets.idle
+  };
+}
+
+function getPlayerSpriteCrop(spriteKey) {
+  return PLAYER_SPRITE_SOURCE_CROPS[spriteKey] || null;
 }
 
 function drawPlayer() {
@@ -209,21 +351,48 @@ function drawPlayer() {
   }
 
   const player = state.player;
-  const sprite = getPlayerSprite();
+  const spriteSelection = getPlayerSpriteSelection();
+  const sprite = spriteSelection?.image || null;
+  const spriteCrop = getPlayerSpriteCrop(spriteSelection?.key);
+  const isSliding = player.isSliding;
+  const isSlideRecovery = player.slideRecoveryTimer > 0;
+  const useSlidePose = isSliding || isSlideRecovery;
 
   ctx.save();
   ctx.fillStyle = "rgba(35, 18, 14, 0.18)";
   ctx.beginPath();
-  ctx.ellipse(player.x, GROUND_Y + 10, 78, 17, 0, 0, Math.PI * 2);
+  ctx.ellipse(player.x, GROUND_Y + 10, useSlidePose ? 92 : 78, useSlidePose ? 19 : 17, 0, 0, Math.PI * 2);
   ctx.fill();
 
   if (sprite) {
-    const drawX = player.x - player.width / 2;
-    const drawY = player.y - player.height;
+    const crouchHeight = player.height * 0.64;
+    const crouchWidth = spriteCrop
+      ? clamp(crouchHeight * (spriteCrop.width / spriteCrop.height), player.width * 0.68, player.width * 1.06)
+      : player.width * 0.68;
+    const slideHeight = player.height * 0.44;
+    const slideWidth = clamp(slideHeight * (sprite.width / sprite.height), player.width * 0.94, player.width * 1.78);
+    const drawWidth = useSlidePose ? slideWidth : player.isCrouching ? crouchWidth : player.width;
+    const drawHeight = useSlidePose ? slideHeight : player.isCrouching ? crouchHeight : player.height;
+    const drawX = player.x - drawWidth / 2 + (useSlidePose ? player.slideDirection * 18 : 0);
+    const drawY = player.y - drawHeight + (useSlidePose ? 26 : 0);
     ctx.translate(player.x, 0);
     ctx.scale(player.facing, 1);
     ctx.translate(-player.x, 0);
-    ctx.drawImage(sprite, drawX, drawY, player.width, player.height);
+    if (player.isCrouching && spriteCrop) {
+      ctx.drawImage(
+        sprite,
+        spriteCrop.x,
+        spriteCrop.y,
+        spriteCrop.width,
+        spriteCrop.height,
+        drawX,
+        drawY,
+        drawWidth,
+        drawHeight
+      );
+    } else {
+      ctx.drawImage(sprite, drawX, drawY, drawWidth, drawHeight);
+    }
   }
 
   ctx.restore();
@@ -304,8 +473,8 @@ function drawGameOverScene() {
   ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
 
   const isRankScene = sceneKey === "rankOne";
-  const maxWidth = isRankScene ? 360 : 540;
-  const maxHeight = isRankScene ? 480 : 300;
+  const maxWidth = isRankScene ? 360 : 420;
+  const maxHeight = isRankScene ? 480 : 240;
   const imageRatio = resultScene.width / resultScene.height;
   let drawWidth = maxWidth;
   let drawHeight = drawWidth / imageRatio;
@@ -353,6 +522,130 @@ function drawRoundTransition() {
   ctx.restore();
 }
 
+function getFinalBossEffectsConfig() {
+  return FINAL_BOSS_PREP_CONFIG.effects || null;
+}
+
+function drawFinalBossMoonMask() {
+  if (state.phase !== "playing" || !state.finalBossPrepTriggered) {
+    return;
+  }
+
+  const moonMask = getFinalBossEffectsConfig()?.moonMask;
+  if (!moonMask) {
+    return;
+  }
+
+  const centerX = clamp(Number(moonMask.centerX) || 0.06, 0, 1) * VIRTUAL_WIDTH;
+  const centerY = clamp(Number(moonMask.centerY) || 0.1, 0, 1) * VIRTUAL_HEIGHT;
+  const radius = clamp(Number(moonMask.radius) || 0.2, 0.05, 0.4) * VIRTUAL_WIDTH;
+
+  ctx.save();
+
+  const band = ctx.createLinearGradient(0, 0, 0, VIRTUAL_HEIGHT * 0.38);
+  band.addColorStop(0, toRgba(moonMask.bandColor, 0.46));
+  band.addColorStop(0.6, toRgba(moonMask.bandColor, 0.2));
+  band.addColorStop(1, toRgba(moonMask.bandColor, 0));
+  ctx.fillStyle = band;
+  ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT * 0.42);
+
+  const veil = ctx.createRadialGradient(centerX, centerY, radius * 0.14, centerX, centerY, radius);
+  veil.addColorStop(0, toRgba(moonMask.color, 0.95));
+  veil.addColorStop(0.42, toRgba(moonMask.color, 0.82));
+  veil.addColorStop(0.8, toRgba(moonMask.color, 0.22));
+  veil.addColorStop(1, toRgba(moonMask.color, 0));
+  ctx.fillStyle = veil;
+  ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+
+  const glow = ctx.createRadialGradient(centerX + radius * 0.34, centerY + radius * 0.06, radius * 0.08, centerX + radius * 0.34, centerY + radius * 0.06, radius * 1.05);
+  glow.addColorStop(0, toRgba(moonMask.highlightColor, 0.18));
+  glow.addColorStop(1, toRgba(moonMask.highlightColor, 0));
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT * 0.52);
+
+  ctx.restore();
+}
+
+function drawBackgroundParticles() {
+  if (state.phase !== "playing" || !state.backgroundParticles.length) {
+    return;
+  }
+
+  ctx.save();
+  ctx.globalCompositeOperation = "screen";
+
+  for (const particle of state.backgroundParticles) {
+    const progress = clamp(particle.age / Math.max(0.001, particle.life), 0, 1);
+    const alpha = particle.alpha * (1 - progress) * (0.78 + Math.sin(particle.twinkle + state.elapsed * 8) * 0.22);
+    if (alpha <= 0.01) {
+      continue;
+    }
+
+    const radius = particle.size * (0.5 + progress * 0.85);
+    const glow = ctx.createRadialGradient(particle.x, particle.y, 0, particle.x, particle.y, radius);
+    glow.addColorStop(0, toRgba(particle.color, alpha));
+    glow.addColorStop(0.4, toRgba(particle.color, alpha * 0.52));
+    glow.addColorStop(1, toRgba(particle.color, 0));
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(particle.x, particle.y, radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = toRgba(particle.color, alpha * 0.78);
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(particle.x - radius * 1.25, particle.y);
+    ctx.lineTo(particle.x + radius * 1.25, particle.y);
+    ctx.moveTo(particle.x, particle.y - radius * 1.25);
+    ctx.lineTo(particle.x, particle.y + radius * 1.25);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+function drawScreenFlash() {
+  if (state.phase !== "playing" || state.backgroundFlashTimer <= 0 || state.backgroundFlashDuration <= 0) {
+    return;
+  }
+
+  const progress = 1 - state.backgroundFlashTimer / state.backgroundFlashDuration;
+  const alpha = state.backgroundFlashIntensity * Math.pow(1 - progress, 1.35);
+  if (alpha <= 0.01) {
+    return;
+  }
+
+  ctx.save();
+  ctx.fillStyle = toRgba(state.backgroundFlashColor, alpha * 0.28);
+  ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+
+  const burst = ctx.createRadialGradient(VIRTUAL_WIDTH / 2, VIRTUAL_HEIGHT * 0.3, 0, VIRTUAL_WIDTH / 2, VIRTUAL_HEIGHT * 0.3, VIRTUAL_HEIGHT * 0.88);
+  burst.addColorStop(0, toRgba(state.backgroundFlashColor, alpha * 0.92));
+  burst.addColorStop(0.38, toRgba(state.backgroundFlashColor, alpha * 0.34));
+  burst.addColorStop(1, toRgba(state.backgroundFlashColor, 0));
+  ctx.fillStyle = burst;
+  ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+  ctx.restore();
+}
+
+function getFinalBossViewportScale() {
+  if (!state.finalBossPrepTriggered || !FINAL_BOSS_PREP_CONFIG.enabled || !FINAL_BOSS_PREP_CONFIG.presentation) {
+    return 1;
+  }
+
+  const targetScale = Number(FINAL_BOSS_PREP_CONFIG.presentation.worldScale);
+  if (!Number.isFinite(targetScale)) {
+    return 1;
+  }
+
+  const rampDuration = Number(FINAL_BOSS_PREP_CONFIG.presentation.rampDuration);
+  const progress = !Number.isFinite(rampDuration) || rampDuration <= 0
+    ? 1
+    : clamp((state.elapsed - state.finalBossPrepStartedAt) / rampDuration, 0, 1);
+
+  return lerp(1, clamp(targetScale, 0.75, 1), progress);
+}
+
 export function renderFrame() {
   drawBackground();
 
@@ -362,6 +655,12 @@ export function renderFrame() {
 
   ctx.save();
   ctx.translate(shakeX, shakeY);
+  const viewportScale = getFinalBossViewportScale();
+  if (viewportScale !== 1) {
+    ctx.translate(VIRTUAL_WIDTH / 2, GROUND_Y);
+    ctx.scale(viewportScale, viewportScale);
+    ctx.translate(-VIRTUAL_WIDTH / 2, -GROUND_Y);
+  }
   drawStageAccent();
   drawItems();
   drawPlayer();
@@ -374,4 +673,7 @@ export function renderFrame() {
     drawRoundBanner();
     drawRoundTransition();
   }
+
+  drawScreenFlash();
+  drawSlideCooldownHud();
 }

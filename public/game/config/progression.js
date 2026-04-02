@@ -1,62 +1,24 @@
-export const ROUND_DEFINITIONS = [
-  {
-    round: 1,
-    startsAt: 0,
-    labelKey: "round.1.label",
-    transitionKey: "round.1.transition",
-    backgroundKey: "backgroundRound1",
-    speedMin: 120,
-    speedMax: 215,
-    speedVariance: 14,
-    driftMin: -14,
-    driftMax: 14,
-    spawnMin: 0.94,
-    spawnMax: 1.28,
-    maxActiveItems: 4
-  },
-  {
-    round: 2,
-    startsAt: 25,
-    labelKey: "round.2.label",
-    transitionKey: "round.2.transition",
-    backgroundKey: "backgroundRound2",
-    speedMin: 195,
-    speedMax: 330,
-    speedVariance: 18,
-    driftMin: -28,
-    driftMax: 28,
-    spawnMin: 0.62,
-    spawnMax: 0.92,
-    maxActiveItems: 5
-  },
-  {
-    round: 3,
-    startsAt: 50,
-    labelKey: "round.3.label",
-    transitionKey: "round.3.transition",
-    backgroundKey: "backgroundRound3",
-    speedMin: 300,
-    speedMax: 400,
-    speedVariance: 20,
-    driftMin: -34,
-    driftMax: 34,
-    spawnMin: 0.42,
-    spawnMax: 0.66,
-    maxActiveItems: 6
-  },
-  {
-    round: 4,
-    startsAt: 70,
-    labelKey: "round.4.label",
-    transitionKey: "round.4.transition",
-    backgroundKey: "backgroundRound4",
-    speedMin: 360,
-    speedMax: 500,
-    speedVariance: 24,
-    driftMin: -46,
-    driftMax: 46,
-    spawnMin: 0.34,
-    spawnMax: 0.52,
-    maxActiveItems: 7
-  }
-];
+import { getCurrentContentSeasonId } from "./runtime.js";
+import { BACKGROUND_SCORE_STAGES as S1_BACKGROUND_SCORE_STAGES, ROUND_DEFINITIONS as S1_ROUND_DEFINITIONS } from "../seasons/s1/progression.js";
+import { BACKGROUND_SCORE_STAGES as S2_BACKGROUND_SCORE_STAGES, ROUND_DEFINITIONS as S2_ROUND_DEFINITIONS } from "../seasons/s2/progression.js";
+
+const ROUND_DEFINITION_SETS = Object.freeze({
+  s1: S1_ROUND_DEFINITIONS,
+  s2: S2_ROUND_DEFINITIONS
+});
+
+const BACKGROUND_SCORE_STAGE_SETS = Object.freeze({
+  s1: S1_BACKGROUND_SCORE_STAGES,
+  s2: S2_BACKGROUND_SCORE_STAGES
+});
+
+export function getRoundDefinitions(seasonId = getCurrentContentSeasonId()) {
+  return ROUND_DEFINITION_SETS[seasonId] || ROUND_DEFINITION_SETS.s1;
+}
+
+export function getBackgroundScoreStages(seasonId = getCurrentContentSeasonId()) {
+  return BACKGROUND_SCORE_STAGE_SETS[seasonId] || BACKGROUND_SCORE_STAGE_SETS.s1;
+}
+
+export const ROUND_DEFINITIONS = getRoundDefinitions();
+export const BACKGROUND_SCORE_STAGES = getBackgroundScoreStages();

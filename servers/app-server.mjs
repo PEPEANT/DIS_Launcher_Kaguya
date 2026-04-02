@@ -10,6 +10,17 @@ function isDirectRun(moduleUrl) {
   return process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(moduleUrl);
 }
 
+function shouldRedirectLoopbackHost(requestUrl) {
+  return ["127.0.0.1", "[::1]", "::1"].includes(requestUrl.hostname);
+}
+
+function getCanonicalLoopbackUrl(requestUrl, fallbackPort) {
+  const redirectUrl = new URL(requestUrl.toString());
+  redirectUrl.hostname = "localhost";
+  redirectUrl.port = requestUrl.port || String(fallbackPort);
+  return redirectUrl.toString();
+}
+
 function buildAppConfigScript(rankingApiBaseUrl) {
   return `window.__APP_CONFIG__ = Object.freeze(${JSON.stringify({
     rankingProvider: "firebase",
@@ -24,7 +35,7 @@ function buildAppConfigScript(rankingApiBaseUrl) {
           kind: "season",
           displayName: "시즌 1",
           status: "current",
-          period: "2026.04.01 - 2026.05.01",
+          period: "2026.04.01 ~ 2026.05.01",
           firebaseCollection: "rankings_season2"
         },
         {
@@ -34,6 +45,21 @@ function buildAppConfigScript(rankingApiBaseUrl) {
           status: "archived",
           period: "2026.03.31",
           firebaseCollection: "rankings"
+        }
+      ]
+    },
+    gameContent: {
+      currentSeasonId: "s2",
+      seasons: [
+        {
+          id: "s1",
+          displayName: "시즌 1",
+          notes: "Current live gameplay snapshot"
+        },
+        {
+          id: "s2",
+          displayName: "시즌 2",
+          notes: "Upcoming gameplay workspace"
         }
       ]
     },
@@ -65,6 +91,15 @@ export async function startAppServer({
     const { pathname } = requestUrl;
 
     const handle = async () => {
+      if (["GET", "HEAD"].includes(request.method || "GET") && shouldRedirectLoopbackHost(requestUrl)) {
+        response.writeHead(307, {
+          Location: getCanonicalLoopbackUrl(requestUrl, port),
+          "Cache-Control": "no-store"
+        });
+        response.end();
+        return;
+      }
+
       if (pathname === "/api/health" && request.method === "GET") {
         sendJson(response, 200, {
           ok: true,
