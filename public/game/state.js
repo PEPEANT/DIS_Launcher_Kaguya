@@ -31,6 +31,7 @@ export function createPlayer() {
     slideCooldownUntil: Number.NEGATIVE_INFINITY,
     slideDirection: 1,
     slideRecoveryTimer: 0,
+    slideImpactConsumed: false,
     facing: 1,
     walkTime: 0
   };

@@ -36,7 +36,7 @@ export const ITEM_TYPES = [
     requiresMissingHealth: true,
     soundKey: "special"
   },
-  { key: "danger1", points: -32, damage: 1, weight: 0.09, minRound: 4, maxScore: 10599, size: 110, radius: 42, color: "#ff8b89", soundKey: "damage", stompRewardPoints: 10, stompBounceVelocity: 560 },
+  { key: "danger1", points: -32, damage: 1, weight: 0.09, minRound: 4, maxScore: 10599, size: 110, radius: 42, color: "#ff8b89", soundKey: "damage", stompRewardPoints: 10, stompBounceVelocity: 560, slideRewardPoints: 8 },
   { key: "danger2", points: -20, damage: 1, weight: 0.082, maxScore: 2199, size: 108, radius: 40, color: "#ffb3ae", soundKey: "damage", stompRewardPoints: 10, stompBounceVelocity: 560 },
   { key: "danger3", points: -26, damage: 1, weight: 0.062, maxScore: 2199, size: 104, radius: 40, color: "#ff9d96", soundKey: "damage", stompRewardPoints: 10, stompBounceVelocity: 560 },
   { key: "danger2", points: -20, damage: 1, weight: 0.032, minScore: 2200, maxScore: 5199, size: 108, radius: 40, color: "#ffb3ae", soundKey: "damage", stompRewardPoints: 10, stompBounceVelocity: 560 },
@@ -83,7 +83,7 @@ export const ITEM_TYPES = [
     color: "#ffd7bf",
     soundKey: "damage"
   },
-  { key: "danger1", points: -40, damage: 1, weight: 0.058, minScore: 10600, size: 118, radius: 44, color: "#ff7a74", soundKey: "damage", stompRewardPoints: 10, stompBounceVelocity: 580 },
+  { key: "danger1", points: -40, damage: 1, weight: 0.058, minScore: 10600, size: 118, radius: 44, color: "#ff7a74", soundKey: "damage", stompRewardPoints: 10, stompBounceVelocity: 580, slideRewardPoints: 8 },
   { key: "danger2", points: -36, damage: 1, weight: 0.05, minScore: 11200, size: 114, radius: 42, color: "#ff9a8f", soundKey: "damage", stompRewardPoints: 10, stompBounceVelocity: 580 },
   { key: "danger3", points: -42, damage: 1, weight: 0.044, minScore: 11800, size: 112, radius: 42, color: "#ff8b82", soundKey: "damage", stompRewardPoints: 10, stompBounceVelocity: 580 },
   {

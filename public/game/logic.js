@@ -619,6 +619,33 @@ function applyStompReward(item) {
   });
 }
 
+function canSlideBreakDangerItem(item) {
+  const slideRewardPoints = Number(item.type?.slideRewardPoints || 0);
+  const player = state.player;
+
+  return slideRewardPoints > 0
+    && player.isSliding
+    && !player.slideImpactConsumed
+    && player.onGround;
+}
+
+function applySlideBreakReward(item) {
+  const slideRewardPoints = Math.max(0, Math.floor(Number(item.type?.slideRewardPoints) || 0));
+  if (!slideRewardPoints) {
+    return;
+  }
+
+  state.score += slideRewardPoints;
+  activateFinalBossPrep();
+  playItemSoundEffect("pickup");
+  state.shake = Math.max(state.shake, 0.14);
+  state.player.slideImpactConsumed = true;
+  addFloatText(`+${slideRewardPoints}`, item.x, item.y - item.type.size * 0.18, "#ffe7a8", {
+    assetKey: "hujupayCoin",
+    iconSize: 28
+  });
+}
+
 function activateFinalBossPrep() {
   if (state.finalBossPrepTriggered || !FINAL_BOSS_PREP_CONFIG.enabled || state.score < FINAL_BOSS_PREP_CONFIG.scoreThreshold) {
     return false;
@@ -926,6 +953,7 @@ function tryStartSlide(direction = 0) {
   player.slideCooldownUntil = state.elapsed + SLIDE_COOLDOWN;
   player.slideDirection = resolvedDirection < 0 ? -1 : 1;
   player.slideRecoveryTimer = 0;
+  player.slideImpactConsumed = false;
   player.facing = player.slideDirection;
   player.isCrouching = false;
   player.walkTime = 0;
@@ -1024,11 +1052,13 @@ function updatePlayer(dt) {
     player.isSliding = false;
     player.slideTimer = 0;
     player.slideRecoveryTimer = 0;
+    player.slideImpactConsumed = false;
   }
 
   if (player.isSliding && player.slideTimer <= 0) {
     player.isSliding = false;
     player.slideRecoveryTimer = SLIDE_RECOVERY_DURATION;
+    player.slideImpactConsumed = false;
   }
 }
 
@@ -1067,6 +1097,11 @@ function updateItems(dt) {
     if (collided) {
       if (canStompDangerItem(item, hitbox, itemCollisionScale, dt)) {
         applyStompReward(item);
+        continue;
+      }
+
+      if (canSlideBreakDangerItem(item)) {
+        applySlideBreakReward(item);
         continue;
       }
 
