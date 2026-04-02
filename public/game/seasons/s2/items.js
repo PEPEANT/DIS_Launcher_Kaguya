@@ -1,14 +1,14 @@
 // Placeholder copy of s1 values. Safe starting point for season 2 tuning.
 export const ITEM_TYPES = [
   { key: "iroha", points: 50, weight: 0.0055, minRound: 4, size: 130, radius: 42, color: "#ede0ff", soundKey: "special" },
-  { key: "snack1", points: 18, weight: 0.15, size: 122, radius: 38, color: "#fff6e0", soundKey: "pickup" },
-  { key: "snack2", points: 32, weight: 0.15, size: 138, radius: 44, color: "#fff6e0", soundKey: "pickup" },
-  { key: "snack3", points: 26, weight: 0.13, size: 144, radius: 48, color: "#fff6e0", soundKey: "pickup" },
-  { key: "snack4", points: 14, weight: 0.11, size: 108, radius: 36, color: "#fff6e0", soundKey: "pickup" },
-  { key: "snack5", points: 24, weight: 0.09, size: 136, radius: 44, color: "#fff3da", soundKey: "pickup" },
-  { key: "snack6", points: 40, weight: 0.065, size: 148, radius: 48, color: "#fff0df", soundKey: "pickup" },
-  { key: "snack7", points: 34, weight: 0.06, minRound: 3, size: 144, radius: 46, color: "#f7f0ff", soundKey: "pickup" },
-  { key: "snack8", points: 22, weight: 0.08, size: 130, radius: 42, color: "#fff6de", soundKey: "pickup" },
+  { key: "snack1", points: 18, weight: 0.15, size: 114, radius: 38, color: "#fff6e0", soundKey: "pickup" },
+  { key: "snack2", points: 32, weight: 0.15, size: 128, radius: 44, color: "#fff6e0", soundKey: "pickup" },
+  { key: "snack3", points: 26, weight: 0.13, size: 134, radius: 48, color: "#fff6e0", soundKey: "pickup" },
+  { key: "snack4", points: 14, weight: 0.11, size: 100, radius: 36, color: "#fff6e0", soundKey: "pickup" },
+  { key: "snack5", points: 24, weight: 0.09, size: 126, radius: 44, color: "#fff3da", soundKey: "pickup" },
+  { key: "snack6", points: 40, weight: 0.065, size: 136, radius: 48, color: "#fff0df", soundKey: "pickup" },
+  { key: "snack7", points: 34, weight: 0.06, minRound: 3, size: 132, radius: 46, color: "#f7f0ff", soundKey: "pickup" },
+  { key: "snack8", points: 22, weight: 0.08, size: 120, radius: 42, color: "#fff6de", soundKey: "pickup" },
   {
     key: "special1",
     points: 0,
