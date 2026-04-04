@@ -764,8 +764,19 @@ async function applySelectedEntries() {
 async function refreshAllData() {
   elements.payoutRefreshButton.disabled = true;
   setInlineStatus(elements.payoutStatus, "지급 센터 데이터를 새로고침하는 중...");
-  await refreshPreview();
+  if (state.previewResult) {
+    await refreshPreview();
+  }
   await refreshPayoutReport();
+}
+
+function resetPreviewState(message = "미리보기를 실행하면 시즌 보상 대상이 여기에 표시됩니다.") {
+  state.previewResult = null;
+  state.selectedPlayerIds.clear();
+  applyPreviewSummary();
+  renderPreviewEmptyRow(message);
+  setInlineStatus(elements.previewApplyStatus, "아직 지급 작업을 실행하지 않았습니다.");
+  updateActionButtons();
 }
 
 function handlePreviewTableChange(event) {
@@ -835,16 +846,14 @@ function bindEvents() {
   });
   elements.previewTableBody?.addEventListener("change", handlePreviewTableChange);
   elements.payoutSeason?.addEventListener("change", () => {
-    state.selectedPlayerIds.clear();
-    setInlineStatus(elements.previewApplyStatus, "시즌이 바뀌어 선택을 초기화했습니다.");
+    resetPreviewState("시즌이 바뀌었습니다. 미리보기를 다시 실행해주세요.");
     renderPayoutMessagePreview();
-    void refreshAllData();
+    void refreshPayoutReport();
   });
   elements.payoutLimit?.addEventListener("change", () => {
-    state.selectedPlayerIds.clear();
-    setInlineStatus(elements.previewApplyStatus, "대상 수가 바뀌어 선택을 초기화했습니다.");
+    resetPreviewState("대상 수가 바뀌었습니다. 미리보기를 다시 실행해주세요.");
     renderPayoutMessagePreview();
-    void refreshAllData();
+    void refreshPayoutReport();
   });
 }
 
@@ -868,7 +877,7 @@ async function bootstrapPayoutPage() {
   renderReportEmptyRow("지급 완료 내역을 불러오는 중입니다.");
   renderPayoutMessagePreview();
   bindEvents();
-  await refreshAllData();
+  await refreshPayoutReport();
 }
 
 void bootstrapPayoutPage();

@@ -552,6 +552,10 @@ function normalizeTargetUidMap(rawValue) {
 }
 
 export async function runSeasonPayout(rawOptions = {}) {
+  const persistSummary = typeof rawOptions.persistSummary === "boolean"
+    ? rawOptions.persistSummary
+    : (Boolean(rawOptions.apply) || !Boolean(rawOptions.quiet));
+
   const options = {
     season: Math.max(1, Math.floor(Number(rawOptions.season) || 1)),
     seasonLabel: String(rawOptions.seasonLabel || "").trim(),
@@ -569,6 +573,7 @@ export async function runSeasonPayout(rawOptions = {}) {
       rawOptions.messageBodyTemplate,
       DEFAULT_REWARD_MESSAGE_BODY_TEMPLATE
     ),
+    persistSummary,
     quiet: Boolean(rawOptions.quiet)
   };
   if (options.targetUid && !options.playerId) {
@@ -766,8 +771,13 @@ export async function runSeasonPayout(rawOptions = {}) {
   }
 
   summary.completedAt = new Date().toISOString();
-  const summaryFile = await writeSummaryFile(summary);
-  summary.summaryFile = summaryFile;
+  if (options.persistSummary) {
+    const summaryFile = await writeSummaryFile(summary);
+    summary.summaryFile = summaryFile;
+    log(`Summary written to ${summaryFile}`);
+  } else {
+    summary.summaryFile = "";
+  }
 
   log("");
   log(options.apply ? "Reward payout complete." : "Reward payout preview complete.");
@@ -778,7 +788,6 @@ export async function runSeasonPayout(rawOptions = {}) {
   log(`Skipped (uid filter): ${summary.skippedUidFilter}`);
   log(`Failed: ${summary.failedCount}`);
   log(`Total reward amount: ${summary.totalRewardedAmount.toLocaleString("ko-KR")} HujuPay`);
-  log(`Summary written to ${summaryFile}`);
   return summary;
 }
 
