@@ -26,6 +26,7 @@ function buildAppConfigScript(rankingApiBaseUrl) {
   return `window.__APP_CONFIG__ = Object.freeze(${JSON.stringify({
     rankingProvider: "firebase",
     rankingApiBaseUrl,
+    adminApiBaseUrl: "",
     assetBaseUrl: "",
     processedAssetBaseUrl: "/processed-assets",
     rankingSeasons: {
@@ -116,7 +117,7 @@ export async function startAppServer({
         return;
       }
 
-      if (pathname === "/app-config.js" && request.method === "GET") {
+      if ((pathname === "/app-config.js" || pathname === "/public/app-config.js") && request.method === "GET") {
         sendJavaScript(response, 200, buildAppConfigScript(rankingApiBaseUrl));
         return;
       }

@@ -39,6 +39,7 @@ const gameContent = Object.freeze({
 window.__APP_CONFIG__ = Object.freeze({
   rankingProvider: "firebase",
   rankingApiBaseUrl: `${window.location.protocol}//${window.location.hostname}:4000`,
+  adminApiBaseUrl: `${window.location.protocol}//${window.location.hostname}:3000`,
   assetBaseUrl: "",
   processedAssetBaseUrl: "/processed-assets",
   rankingSeasons,

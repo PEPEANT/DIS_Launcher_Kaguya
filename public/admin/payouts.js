@@ -131,6 +131,14 @@ function hasInjectedAppConfig() {
 }
 
 function getAdminApiUrl() {
+  const configuredBaseUrl = typeof window === "undefined"
+    ? ""
+    : String(window.__APP_CONFIG__?.adminApiBaseUrl || "").replace(/\/$/, "");
+
+  if (configuredBaseUrl) {
+    return `${configuredBaseUrl}/api/admin/action`;
+  }
+
   if (hasInjectedAppConfig()) {
     return new URL("/api/admin/action", window.location.origin).toString();
   }
