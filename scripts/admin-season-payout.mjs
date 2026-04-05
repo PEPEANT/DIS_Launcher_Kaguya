@@ -15,8 +15,8 @@ const REWARD_TIERS = Object.freeze([
   Object.freeze({ minRank: 4, maxRank: 10, reward: 2500 }),
   Object.freeze({ minRank: 11, maxRank: 50, reward: 500 })
 ]);
-const DEFAULT_REWARD_MESSAGE_TITLE_TEMPLATE = "{seasonLabel} 보상 지급 안내";
-const DEFAULT_REWARD_MESSAGE_BODY_TEMPLATE = "축하합니다. {seasonLabel} 최종 순위 {rank}위 보상으로 {rewardAmount} HujuPay를 지급했습니다.";
+const DEFAULT_REWARD_MESSAGE_TITLE_TEMPLATE = "[Legacy] {seasonLabel} 정산 안내";
+const DEFAULT_REWARD_MESSAGE_BODY_TEMPLATE = "{seasonLabel} 최종 순위 {rank}위 기록에 대한 레거시 정산으로 {rewardAmount} HujuPay를 지급했습니다.";
 
 const userLinkIndex = new Map();
 
@@ -26,13 +26,13 @@ function printHelp() {
   console.log("Options:");
   console.log("  --season <number>        Ranking season number. Default: 1");
   console.log("  --season-label <text>    Override the user-facing season label.");
-  console.log("  --apply                  Apply the payout. Default is dry-run.");
+  console.log("  --apply                  Apply the legacy settlement. Default is dry-run.");
   console.log("  --limit <number>         Process only the first N eligible ranking rows.");
-  console.log("  --uid <uid>              Restrict payout preview/apply to one user.");
-  console.log("  --player-id <playerId>   Restrict payout preview/apply to one playerId.");
+  console.log("  --uid <uid>              Restrict legacy preview/apply to one user.");
+  console.log("  --player-id <playerId>   Restrict legacy preview/apply to one playerId.");
   console.log("  --target-uid <uid>       Force a uid for the selected playerId when no link exists.");
-  console.log("  --message-title <text>   Override the payout inbox title template.");
-  console.log("  --message-body <text>    Override the payout inbox body template.");
+  console.log("  --message-title <text>   Override the legacy settlement inbox title template.");
+  console.log("  --message-body <text>    Override the legacy settlement inbox body template.");
 }
 
 function parseArgs(argv = process.argv.slice(2)) {
@@ -537,7 +537,7 @@ async function resolveUid(entry) {
 
 async function writeSummaryFile(summary) {
   await fs.mkdir(DATA_DIR, { recursive: true });
-  const filename = `admin-season-payout-s${summary.season}-${summary.startedAt.slice(0, 19).replace(/[:T]/g, "_")}.json`;
+  const filename = `admin-legacy-payout-s${summary.season}-${summary.startedAt.slice(0, 19).replace(/[:T]/g, "_")}.json`;
   const filepath = path.join(DATA_DIR, filename);
   await fs.writeFile(filepath, JSON.stringify(summary, null, 2));
   return filepath;
@@ -606,8 +606,8 @@ export async function runSeasonPayout(rawOptions = {}) {
   const startedAt = new Date().toISOString();
 
   log(options.apply
-    ? `[apply] Paying ${seasonLabel} rewards from ${rankingCollection}.`
-    : `[dry-run] Previewing ${seasonLabel} rewards from ${rankingCollection}.`);
+    ? `[apply] Paying ${seasonLabel} legacy settlements from ${rankingCollection}.`
+    : `[dry-run] Previewing ${seasonLabel} legacy settlements from ${rankingCollection}.`);
 
   await buildUserLinkIndex();
 
@@ -786,7 +786,7 @@ export async function runSeasonPayout(rawOptions = {}) {
   }
 
   log("");
-  log(options.apply ? "Reward payout complete." : "Reward payout preview complete.");
+  log(options.apply ? "Legacy payout complete." : "Legacy payout preview complete.");
   log(`Eligible entries: ${summary.eligibleEntries}`);
   log(`Processed entries: ${summary.processedEntries}`);
   log(`Skipped (already paid): ${summary.skippedExistingMessage}`);

@@ -1,3 +1,5 @@
+import { getSnackRushSourceFile } from "../games/snack-rush/config/source-paths.js";
+
 export const DEFAULT_SKIN_ID = "skin_0";
 
 const DEFAULT_PLAYER_POSE_KEYS = Object.freeze({
@@ -10,13 +12,13 @@ const DEFAULT_PLAYER_POSE_KEYS = Object.freeze({
 });
 
 export const SKIN_ASSET_DEFINITIONS = Object.freeze([
-  { key: "skinBIdle", file: "character/skins/skin_b/0.png", sourceFile: "character/skins/skin_b/0.png", chromaKey: true },
-  { key: "skinBWalk1", file: "character/skins/skin_b/1.png", sourceFile: "character/skins/skin_b/1.png", chromaKey: true },
-  { key: "skinBWalk2", file: "character/skins/skin_b/2.png", sourceFile: "character/skins/skin_b/2.png", chromaKey: true },
-  { key: "skinBDamage", file: "character/skins/skin_b/3.png", sourceFile: "character/skins/skin_b/3.png", chromaKey: true },
-  { key: "skinBJump", file: "character/skins/skin_b/4.png", sourceFile: "character/skins/skin_b/4.png", chromaKey: true },
-  { key: "skinBDown", file: "character/skins/skin_b/5.png", sourceFile: "character/skins/skin_b/5.png", chromaKey: true },
-  { key: "skinBPreview", file: "character/skins/skin_b/6.png", sourceFile: "character/skins/skin_b/6.png", chromaKey: true }
+  { key: "skinBIdle", file: "character/skins/skin_b/0.png", sourceFile: getSnackRushSourceFile("character/skins/skin_b/0.png"), chromaKey: true },
+  { key: "skinBWalk1", file: "character/skins/skin_b/1.png", sourceFile: getSnackRushSourceFile("character/skins/skin_b/1.png"), chromaKey: true },
+  { key: "skinBWalk2", file: "character/skins/skin_b/2.png", sourceFile: getSnackRushSourceFile("character/skins/skin_b/2.png"), chromaKey: true },
+  { key: "skinBDamage", file: "character/skins/skin_b/3.png", sourceFile: getSnackRushSourceFile("character/skins/skin_b/3.png"), chromaKey: true },
+  { key: "skinBJump", file: "character/skins/skin_b/4.png", sourceFile: getSnackRushSourceFile("character/skins/skin_b/4.png"), chromaKey: true },
+  { key: "skinBDown", file: "character/skins/skin_b/5.png", sourceFile: getSnackRushSourceFile("character/skins/skin_b/5.png"), chromaKey: true },
+  { key: "skinBPreview", file: "character/skins/skin_b/6.png", sourceFile: getSnackRushSourceFile("character/skins/skin_b/6.png"), chromaKey: true }
 ]);
 
 export const SHOP_SKINS = Object.freeze([

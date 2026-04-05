@@ -88,6 +88,13 @@ export async function startAppServer({
   port = getAppPort(),
   rankingApiBaseUrl = getRankingApiBaseUrl()
 } = {}) {
+  const sourceAssetDirs = [
+    path.join(ROOT_DIR, "assets", "source", "launcher"),
+    path.join(ROOT_DIR, "assets", "source", "shared"),
+    path.join(ROOT_DIR, "assets", "source", "games", "snack-rush"),
+    path.join(ROOT_DIR, "assets", "source", "games", "cooking")
+  ];
+
   const server = createServer((request, response) => {
     const requestUrl = new URL(request.url || "/", `http://${request.headers.host || "localhost"}`);
     const { pathname } = requestUrl;
@@ -125,9 +132,15 @@ export async function startAppServer({
         return;
       }
 
+      if (pathname === "/favicon.ico" && request.method === "GET") {
+        response.writeHead(204, { "Cache-Control": "public, max-age=86400" });
+        response.end();
+        return;
+      }
+
       if (pathname.startsWith("/assets/") && request.method === "GET") {
         const relativePath = decodeURIComponent(pathname.slice("/assets/".length)).replace(/\\/g, "/");
-        const assetPath = resolveAssetFile(ROOT_DIR, relativePath);
+        const assetPath = resolveAssetFile(ROOT_DIR, relativePath, sourceAssetDirs);
 
         if (!assetPath) {
           sendText(response, 404, "Asset not found.");
@@ -141,7 +154,7 @@ export async function startAppServer({
       const directAssetMatch = pathname.match(/^\/(scene|character|item|special)\/(.+)$/u);
       if (directAssetMatch && request.method === "GET") {
         const relativePath = `${directAssetMatch[1]}/${directAssetMatch[2]}`;
-        const assetPath = resolveAssetFile(ROOT_DIR, relativePath);
+        const assetPath = resolveAssetFile(ROOT_DIR, relativePath, sourceAssetDirs);
 
         if (!assetPath) {
           sendText(response, 404, "Asset not found.");

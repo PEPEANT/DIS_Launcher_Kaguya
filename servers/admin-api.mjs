@@ -185,6 +185,19 @@ function sanitizeUserActionOptions(payload = {}, actor = "") {
   };
 }
 
+function sanitizeLobbyNoticeOptions(payload = {}, actor = "") {
+  return {
+    apply: Boolean(payload.apply),
+    actor: String(actor || "").trim() || "admin",
+    messageId: String(payload.messageId || "").trim(),
+    nickname: String(payload.nickname || "").trim(),
+    title: String(payload.title || "").trim(),
+    body: String(payload.body || "").trim(),
+    persistSummary: false,
+    refreshTokenCache: false
+  };
+}
+
 function normalizeSeasonNumber(value, fallback = 1) {
   const season = Math.floor(Number(value) || fallback);
   return Number.isFinite(season) && season >= 1 ? season : fallback;
@@ -320,11 +333,17 @@ export async function handleAdminApiRequest(request, response, requestUrl) {
       case "send-message":
         result = await runAdminUserAction("send-message", sanitizeUserActionOptions(payload, adminUser.email || adminUser.uid));
         break;
+      case "grant-wallet":
+        result = await runAdminUserAction("grant-wallet", sanitizeUserActionOptions(payload, adminUser.email || adminUser.uid));
+        break;
       case "adjust-wallet":
         result = await runAdminUserAction("adjust-wallet", sanitizeUserActionOptions(payload, adminUser.email || adminUser.uid));
         break;
       case "delete-message":
         result = await runAdminUserAction("delete-message", sanitizeUserActionOptions(payload, adminUser.email || adminUser.uid));
+        break;
+      case "send-lobby-notice":
+        result = await runAdminUserAction("send-lobby-notice", sanitizeLobbyNoticeOptions(payload, adminUser.email || adminUser.uid));
         break;
       default:
         sendJson(response, 400, { ok: false, error: "Unknown admin action." });

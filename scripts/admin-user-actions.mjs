@@ -23,8 +23,10 @@ function printHelp() {
   console.log("");
   console.log("Commands:");
   console.log("  send-message     Create an inbox message for one user.");
-  console.log("  adjust-wallet    Add or subtract HujuPay for one user.");
+  console.log("  grant-wallet     Grant or correct HujuPay for one user.");
+  console.log("  adjust-wallet    Legacy alias for grant-wallet.");
   console.log("  delete-message   Remove one message from one user inbox.");
+  console.log("  send-lobby-notice Send a notice into the lobby chat feed.");
   console.log("");
   console.log("Common:");
   console.log("  --apply                  Apply the action. Default is dry-run.");
@@ -43,7 +45,7 @@ function printHelp() {
   console.log("  --claimable <bool>       Default: false");
   console.log("  --claimed <bool>         Default: true");
   console.log("");
-  console.log("adjust-wallet:");
+  console.log("grant-wallet:");
   console.log("  --delta <int>            Balance change. Example: 500 or -300");
   console.log("  --reason <text>          Required audit reason.");
   console.log("  --message-id <id>        Optional custom message id.");
@@ -55,6 +57,12 @@ function printHelp() {
   console.log("");
   console.log("delete-message:");
   console.log("  --message-id <id>        Message id to delete.");
+  console.log("");
+  console.log("send-lobby-notice:");
+  console.log("  --message-id <id>        Optional custom notice id.");
+  console.log("  --nickname <text>        Bubble sender label. Default: ADMIN");
+  console.log("  --title <text>           Optional notice title.");
+  console.log("  --body <text>            Notice body shown in lobby chat.");
 }
 
 function normalizeUid(value) {
@@ -82,6 +90,14 @@ function normalizeInt(value, fallback = 0) {
 
 function normalizeNonNegativeInt(value) {
   return Math.max(0, normalizeInt(value, 0));
+}
+
+function normalizeLobbyNoticeLine(value, maxLength) {
+  return String(value || "")
+    .replace(/\r?\n+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, maxLength);
 }
 
 function normalizeBoolean(value, fallback = false) {
@@ -169,12 +185,14 @@ async function resolveAccountUid(rawTarget) {
 
 function parseArgs(argv = process.argv.slice(2)) {
   const [rawCommand = "", ...rest] = argv;
-  const command = normalizeText(rawCommand);
+  const normalizedCommand = normalizeText(rawCommand);
+  const command = normalizedCommand === "adjust-wallet" ? "grant-wallet" : normalizedCommand;
   const options = {
     apply: false,
     uid: "",
     actor: getDefaultActor(),
     messageId: "",
+    nickname: "",
     title: "",
     body: "",
     type: "",
@@ -212,6 +230,10 @@ function parseArgs(argv = process.argv.slice(2)) {
         break;
       case "--message-id":
         options.messageId = next;
+        index += 1;
+        break;
+      case "--nickname":
+        options.nickname = next;
         index += 1;
         break;
       case "--title":
@@ -341,6 +363,30 @@ function buildLogPayload({
   };
 }
 
+function buildLobbyNoticePayload({
+  messageId,
+  nickname,
+  title,
+  body,
+  actor,
+  sentAt
+}) {
+  const safeNickname = normalizeLobbyNoticeLine(nickname, 12) || "ADMIN";
+  const safeTitle = normalizeLobbyNoticeLine(title, 48);
+  const safeBody = normalizeLobbyNoticeLine(body, 220);
+
+  return {
+    messageId,
+    uid: "__admin_notice__",
+    nicknameSnapshot: safeNickname,
+    title: safeTitle,
+    text: safeBody,
+    messageType: "admin_notice",
+    actor: normalizeText(actor) || "admin",
+    createdAt: sentAt
+  };
+}
+
 export async function runSendMessage(options) {
   const targetAccount = normalizeUid(options.uid);
   ensureRequired(targetAccount, "uid or playerId");
@@ -455,7 +501,7 @@ export async function runAdjustWallet(options) {
   }
 
   const nextEarnedTotal = delta > 0 ? currentEarnedTotal + delta : currentEarnedTotal;
-  const messageId = normalizeMessageId(options.messageId, "wallet_adjust");
+  const messageId = normalizeMessageId(options.messageId, "wallet_grant");
   const messagePath = `users/${uid}/messages/${messageId}`;
   const messageDoc = options.skipMessage ? null : await readDocument(messagePath);
 
@@ -479,7 +525,7 @@ export async function runAdjustWallet(options) {
   });
 
   const summary = {
-    command: "adjust-wallet",
+    command: "grant-wallet",
     apply: options.apply,
     startedAt: nowIso,
     uid,
@@ -504,11 +550,11 @@ export async function runAdjustWallet(options) {
       }),
       buildPatchWrite(`adminLogs/${actionId}`, buildLogPayload({
         actionId,
-        actionType: "adjust-wallet",
+        actionType: "grant-wallet",
         actor: options.actor,
         uid,
         apply: true,
-        summary: `Adjusted wallet by ${delta}`,
+        summary: `Granted or corrected wallet by ${delta}`,
         nowIso
       }))
     ];
@@ -522,14 +568,14 @@ export async function runAdjustWallet(options) {
 
   summary.completedAt = new Date().toISOString();
   if (options.persistSummary !== false) {
-    summary.summaryFile = await writeSummaryFile("admin-adjust-wallet", summary);
+    summary.summaryFile = await writeSummaryFile("admin-grant-wallet", summary);
   } else {
     summary.summaryFile = "";
   }
 
   console.log(options.apply
-    ? `Wallet for ${uid} adjusted by ${delta}. New balance: ${nextBalance}.`
-    : `[dry-run] Wallet for ${uid} would change by ${delta}. New balance: ${nextBalance}.`);
+    ? `Wallet for ${uid} granted/corrected by ${delta}. New balance: ${nextBalance}.`
+    : `[dry-run] Wallet for ${uid} would be granted/corrected by ${delta}. New balance: ${nextBalance}.`);
   if (summary.summaryFile) {
     console.log(`Summary written to ${summary.summaryFile}`);
   }
@@ -607,6 +653,68 @@ export async function runDeleteMessage(options) {
   return summary;
 }
 
+export async function runSendLobbyNotice(options) {
+  ensureRequired(options.body, "body");
+
+  const nowIso = new Date().toISOString();
+  const actionId = createActionId("admin_lobby_notice");
+  const messageId = normalizeMessageId(options.messageId, "lobby_notice");
+  const noticePath = `lobbyChat/${messageId}`;
+  const existingNotice = await readDocument(noticePath);
+
+  if (existingNotice.exists) {
+    throw new Error(`Lobby notice ${messageId} already exists.`);
+  }
+
+  const noticePayload = buildLobbyNoticePayload({
+    messageId,
+    nickname: options.nickname,
+    title: options.title,
+    body: options.body,
+    actor: options.actor,
+    sentAt: nowIso
+  });
+
+  const summary = {
+    command: "send-lobby-notice",
+    apply: options.apply,
+    startedAt: nowIso,
+    actor: options.actor,
+    messageId,
+    notice: noticePayload
+  };
+
+  if (options.apply) {
+    await commitWrites([
+      buildPatchWrite(noticePath, noticePayload, { mustNotExist: true }),
+      buildPatchWrite(`adminLogs/${actionId}`, buildLogPayload({
+        actionId,
+        actionType: "send-lobby-notice",
+        actor: options.actor,
+        uid: "__lobby__",
+        apply: true,
+        summary: `Sent lobby notice ${messageId}`,
+        nowIso
+      }))
+    ]);
+  }
+
+  summary.completedAt = new Date().toISOString();
+  if (options.persistSummary !== false) {
+    summary.summaryFile = await writeSummaryFile("admin-send-lobby-notice", summary);
+  } else {
+    summary.summaryFile = "";
+  }
+
+  console.log(options.apply
+    ? `Lobby notice ${messageId} sent.`
+    : `[dry-run] Lobby notice ${messageId} is ready.`);
+  if (summary.summaryFile) {
+    console.log(`Summary written to ${summary.summaryFile}`);
+  }
+  return summary;
+}
+
 export async function runAdminUserAction(command, options = {}) {
   if (options.refreshTokenCache !== false) {
     refreshFirebaseTokenCache();
@@ -615,10 +723,13 @@ export async function runAdminUserAction(command, options = {}) {
   switch (command) {
     case "send-message":
       return runSendMessage(options);
+    case "grant-wallet":
     case "adjust-wallet":
       return runAdjustWallet(options);
     case "delete-message":
       return runDeleteMessage(options);
+    case "send-lobby-notice":
+      return runSendLobbyNotice(options);
     default:
       throw new Error(`Unknown command: ${command}`);
   }

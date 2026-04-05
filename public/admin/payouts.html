@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <title>카구야 시즌 보상 지급 센터</title>
+    <title>카구야 레거시 정산 센터</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
@@ -13,8 +13,8 @@
     <main class="admin-shell">
       <header class="admin-header">
         <div>
-          <p class="admin-eyebrow">지급 센터</p>
-          <h1>시즌 보상 지급 센터</h1>
+          <p class="admin-eyebrow">레거시 정산</p>
+          <h1>레거시 정산 센터</h1>
         </div>
         <div class="admin-header-actions">
           <a href="./index.html" class="refresh-button refresh-button--secondary">관리자 홈</a>
@@ -24,8 +24,19 @@
 
       <section class="panel-card">
         <div class="panel-head">
+          <h2>레거시 정산 센터</h2>
+          <p>이 페이지는 일상 운영용이 아니라 기존 시즌 데이터 정산과 예외 처리용입니다.</p>
+        </div>
+        <div class="player-detail-empty">
+          <strong>현재 운영 기본값은 이벤트 메시지, 로비 공지, 운영 후쥬 지급입니다.</strong>
+          <p>시즌 보상 지급은 레거시 정산이나 누락 보정이 필요한 경우에만 사용하세요. 게임 점수는 후쥬 자동 적립과 분리되어 있습니다.</p>
+        </div>
+      </section>
+
+      <section class="panel-card">
+        <div class="panel-head">
           <div>
-            <h2>지급 작업</h2>
+            <h2>레거시 정산 작업</h2>
             <p>대상 리스트를 표로 확인하고, uid 누락 행만 보정해서 바로 선택 지급할 수 있습니다.</p>
           </div>
           <p id="payoutStatus" class="admin-inline-status">준비됨.</p>
@@ -61,11 +72,11 @@
         <form class="admin-form-grid admin-form-grid--compact">
           <label class="admin-field admin-field--wide">
             <span>메시지 제목 템플릿</span>
-            <input id="payoutMessageTitle" type="text" placeholder="시즌 보상 지급 안내">
+            <input id="payoutMessageTitle" type="text" placeholder="[Legacy] 시즌 정산 안내">
           </label>
           <label class="admin-field admin-field--wide">
             <span>메시지 본문 템플릿</span>
-            <textarea id="payoutMessageBody" rows="3" placeholder="축하합니다. 시즌 보상이 지급되었습니다."></textarea>
+            <textarea id="payoutMessageBody" rows="3" placeholder="레거시 정산 안내 메시지를 입력하세요."></textarea>
           </label>
           <div class="admin-button-row admin-field--wide">
             <button id="payoutMessageResetButton" type="button" class="refresh-button refresh-button--secondary">기본 문구 복원</button>
@@ -75,8 +86,8 @@
         <div class="message-preview-card">
           <p class="message-preview-label">실제 발송 미리보기</p>
           <div class="message-preview-frame">
-            <strong id="payoutMessagePreviewTitle" class="message-preview-title">시즌 보상 지급 안내</strong>
-            <p id="payoutMessagePreviewBody" class="message-preview-body">지급 대상 미리보기를 불러오면 선택된 플레이어 기준으로 실제 발송 예시가 표시됩니다.</p>
+            <strong id="payoutMessagePreviewTitle" class="message-preview-title">[Legacy] 시즌 정산 안내</strong>
+            <p id="payoutMessagePreviewBody" class="message-preview-body">대상 미리보기를 불러오면 선택된 플레이어 기준으로 실제 레거시 정산 안내가 표시됩니다.</p>
           </div>
         </div>
       </section>
@@ -121,7 +132,7 @@
             </thead>
             <tbody id="previewTableBody">
               <tr class="empty-row">
-                <td colspan="8">미리보기를 실행하면 시즌 보상 대상이 여기에 표시됩니다.</td>
+                <td colspan="8">미리보기를 실행하면 레거시 정산 대상이 여기에 표시됩니다.</td>
               </tr>
             </tbody>
           </table>

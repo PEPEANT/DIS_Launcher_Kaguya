@@ -1,18 +1,12 @@
-import { promises as fs } from "node:fs";
+import { existsSync, promises as fs } from "node:fs";
 import path from "node:path";
 
 const ALLOWED_ASSET_DIRS = new Set(["scene", "character", "item", "special"]);
 
 export function isAllowedAssetPath(relativePath) {
   const normalized = relativePath.replace(/\\/g, "/");
-  const parts = normalized.split("/");
-
-  if (parts.length !== 2) {
-    return false;
-  }
-
-  const [directory, filename] = parts;
-  return ALLOWED_ASSET_DIRS.has(directory) && /^[A-Za-z0-9_-]+\.(png|jpg|jpeg)$/u.test(filename);
+  const match = normalized.match(/^([A-Za-z0-9_-]+)\/(?:[A-Za-z0-9_.-]+\/)*[A-Za-z0-9_.-]+\.(png|jpg|jpeg)$/u);
+  return Boolean(match && ALLOWED_ASSET_DIRS.has(match[1]));
 }
 
 export async function resolvePublicFile(publicDir, urlPath) {
@@ -41,11 +35,19 @@ export async function resolvePublicFile(publicDir, urlPath) {
   }
 }
 
-export function resolveAssetFile(baseDir, relativePath) {
+export function resolveAssetFile(baseDir, relativePath, extraBaseDirs = []) {
   if (!isAllowedAssetPath(relativePath)) {
     return null;
   }
 
-  const absolutePath = path.resolve(baseDir, relativePath);
-  return absolutePath.startsWith(baseDir) ? absolutePath : null;
+  const normalized = relativePath.replace(/\\/g, "/");
+
+  for (const candidateBaseDir of [baseDir, ...extraBaseDirs]) {
+    const absolutePath = path.resolve(candidateBaseDir, normalized);
+    if (absolutePath.startsWith(candidateBaseDir) && existsSync(absolutePath)) {
+      return absolutePath;
+    }
+  }
+
+  return null;
 }

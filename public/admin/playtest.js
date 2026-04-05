@@ -1,4 +1,4 @@
-import { initAuth } from "../game/auth.js";
+import { initAuth } from "../game/shared/auth/auth-service.js";
 import {
   getAdminAccessConfig,
   getAvailableContentSeasons,

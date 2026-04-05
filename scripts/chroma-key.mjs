@@ -5,6 +5,7 @@ import sharp from "sharp";
 
 import { CHROMA_KEY_CONFIG } from "../config/chroma-key.config.mjs";
 import { getAssetDefinitions } from "../public/game/config/assets.js";
+import { SKIN_ASSET_DEFINITIONS } from "../public/game/config/skins.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -12,21 +13,28 @@ const ROOT_DIR = path.resolve(__dirname, "..");
 const OUTPUT_DIR = path.join(ROOT_DIR, "processed-assets");
 const PUBLIC_OUTPUT_DIR = path.join(ROOT_DIR, "public", "processed-assets");
 const ASSET_DEFINITIONS = [...new Map(
-  ["s1", "s2"]
-    .flatMap((seasonId) => getAssetDefinitions(seasonId))
+  [
+    ...["s1", "s2"].flatMap((seasonId) => getAssetDefinitions(seasonId)),
+    ...SKIN_ASSET_DEFINITIONS
+  ]
     .map((definition) => [`${definition.file}::${definition.sourceFile || ""}`, definition])
 ).values()];
 const STATIC_PUBLIC_ASSETS = [
-  "scene/c0.png",
-  "scene/Login_Main_kr.png",
-  "scene/Login_Main_jp.png",
-  "special/intro_figure2.png",
-  ...ASSET_DEFINITIONS.filter((definition) => !definition.chromaKey).map((definition) => definition.file)
+  { sourcePath: "scene/c0.png", targetPath: "scene/c0.png" },
+  { sourcePath: "scene/Login_Main_kr.png", targetPath: "scene/Login_Main_kr.png" },
+  { sourcePath: "scene/Login_Main_jp.png", targetPath: "scene/Login_Main_jp.png" },
+  { sourcePath: "special/intro_figure2.png", targetPath: "special/intro_figure2.png" },
+  ...ASSET_DEFINITIONS
+    .filter((definition) => !definition.chromaKey)
+    .map((definition) => ({
+      sourcePath: definition.sourceFile || definition.file,
+      targetPath: definition.file
+    }))
 ];
 const STATIC_PROCESSED_ASSETS = [
-  "special/intro_figure.png",
-  "special/thumbnail_mobile.png",
-  "special/thumbnail_raw.png"
+  { sourcePath: "assets/source/games/snack-rush/special/intro_figure.png", targetPath: "special/intro_figure.png" },
+  { sourcePath: "special/thumbnail_mobile.png", targetPath: "special/thumbnail_mobile.png" },
+  { sourcePath: "special/thumbnail_raw.png", targetPath: "special/thumbnail_raw.png" }
 ];
 
 async function writePng(pixelBuffer, info, outputPath) {
@@ -143,18 +151,18 @@ async function processAsset(definition) {
   };
 }
 
-async function copyStaticAsset(relativePath) {
-  const sourcePath = path.join(ROOT_DIR, relativePath);
-  const targetPath = path.join(ROOT_DIR, "public", relativePath);
+async function copyStaticAsset({ sourcePath: sourceRelativePath, targetPath: targetRelativePath }) {
+  const sourcePath = path.join(ROOT_DIR, sourceRelativePath);
+  const targetPath = path.join(ROOT_DIR, "public", targetRelativePath);
   await fs.mkdir(path.dirname(targetPath), { recursive: true });
   await fs.copyFile(sourcePath, targetPath);
-  return relativePath;
+  return targetRelativePath;
 }
 
-async function copyProcessedStaticAsset(relativePath) {
+async function copyProcessedStaticAsset({ sourcePath: sourceRelativePath, targetPath: targetRelativePath }) {
   const sourceCandidates = [
-    path.join(ROOT_DIR, relativePath),
-    path.join(PUBLIC_OUTPUT_DIR, relativePath)
+    path.join(ROOT_DIR, sourceRelativePath),
+    path.join(PUBLIC_OUTPUT_DIR, targetRelativePath)
   ];
   const sourcePath = await sourceCandidates.reduce(async (resolvedPromise, candidatePath) => {
     const resolved = await resolvedPromise;
@@ -171,16 +179,16 @@ async function copyProcessedStaticAsset(relativePath) {
   }, Promise.resolve(""));
 
   if (!sourcePath) {
-    throw new Error(`Missing processed static asset source: ${relativePath}`);
+    throw new Error(`Missing processed static asset source: ${targetRelativePath}`);
   }
 
-  const outputPath = path.join(OUTPUT_DIR, relativePath);
-  const publicOutputPath = path.join(PUBLIC_OUTPUT_DIR, relativePath);
+  const outputPath = path.join(OUTPUT_DIR, targetRelativePath);
+  const publicOutputPath = path.join(PUBLIC_OUTPUT_DIR, targetRelativePath);
   await fs.mkdir(path.dirname(outputPath), { recursive: true });
   await fs.mkdir(path.dirname(publicOutputPath), { recursive: true });
   await fs.copyFile(sourcePath, outputPath);
   await fs.copyFile(sourcePath, publicOutputPath);
-  return relativePath;
+  return targetRelativePath;
 }
 
 async function main() {
@@ -198,8 +206,12 @@ async function main() {
     assets: report
   }, null, 2)}\n`, "utf8");
 
-  await Promise.all([...new Set(STATIC_PUBLIC_ASSETS)].map(copyStaticAsset));
-  await Promise.all([...new Set(STATIC_PROCESSED_ASSETS)].map(copyProcessedStaticAsset));
+  await Promise.all(
+    [...new Map(STATIC_PUBLIC_ASSETS.map((entry) => [entry.targetPath, entry])).values()].map(copyStaticAsset)
+  );
+  await Promise.all(
+    [...new Map(STATIC_PROCESSED_ASSETS.map((entry) => [entry.targetPath, entry])).values()].map(copyProcessedStaticAsset)
+  );
 
   console.log(`Processed ${report.length} chroma-key assets into ${OUTPUT_DIR}`);
 }

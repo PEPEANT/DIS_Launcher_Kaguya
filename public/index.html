@@ -52,94 +52,156 @@
         </div>
       </section>
 
-      <section class="lobby-screen" id="lobbyScreen" data-mobile-panel="none" hidden>
-        <div class="lang-switcher">
-          <button class="lang-btn lang-btn--active" data-lang="ko" type="button">KO</button>
-          <button class="lang-btn" data-lang="ja" type="button">JP</button>
-          <button class="lang-btn" data-lang="en" type="button">EN</button>
-          <button id="musicToggleButton" type="button" class="lang-btn lang-btn--music" data-i18n="audio.off">Music Off</button>
-          <button id="lobbyLoginButton" type="button" class="lang-btn lang-btn--auth" data-i18n="auth.login">Login</button>
-        </div>
+      <section class="lobby-screen" id="lobbyScreen" data-mobile-panel="none" data-lobby-view="home" hidden>
+        <header class="lobby-topbar">
+          <div class="lobby-route-banner" aria-live="polite">
+            <strong id="lobbyRouteLabel" class="lobby-route-label" data-i18n="mobileNav.home">Home</strong>
+            <span
+              id="lobbyRouteBadge"
+              class="season-badge season-badge--current lobby-route-badge"
+              data-i18n="ranking.currentSeasonBadge"
+              hidden
+            >Season 1</span>
+          </div>
+          <div class="lang-switcher">
+            <button class="lang-btn lang-btn--active" data-lang="ko" type="button">KO</button>
+            <button class="lang-btn" data-lang="ja" type="button">JP</button>
+            <button class="lang-btn" data-lang="en" type="button">EN</button>
+            <button id="musicToggleButton" type="button" class="lang-btn lang-btn--music" data-i18n="audio.off">Music Off</button>
+          </div>
 
-        <section class="lobby-hero">
+          <section class="account-card lobby-account-quickbar" id="accountCard">
+            <div class="account-card-head">
+              <span id="authModeBadge" class="account-badge account-badge--guest" data-i18n="auth.guestBadge" hidden>Guest</span>
+              <div class="account-head-actions lobby-account-actions">
+                <button id="profileInfoButton" type="button" class="lobby-profile-button" hidden aria-label="My Info">
+                  <span class="lobby-profile-avatar" aria-hidden="true"></span>
+                  <span class="lobby-profile-meta">
+                    <strong id="authDisplayName" class="account-display" data-i18n="auth.guestTitle">Playing as Guest</strong>
+                    <span class="lobby-profile-wallet">
+                      <img src="/processed-assets/item/Fuju.png" alt="" class="wallet-coin-icon wallet-coin-icon--inline" aria-hidden="true">
+                      <strong id="desktopHujupayBalance" class="lobby-profile-wallet-value">0</strong>
+                    </span>
+                  </span>
+                </button>
+                <button id="desktopMessagesButton" type="button" class="lobby-desktop-alert-button" data-i18n="messages.open" hidden aria-label="Messages">Message</button>
+                <button id="lobbyLoginButton" type="button" class="lang-btn lang-btn--auth" data-i18n="auth.login">Login</button>
+              </div>
+            </div>
+            <p id="authSummaryText" class="account-summary-text" hidden></p>
+          </section>
+        </header>
+
+        <section class="lobby-hero" id="launcherHome">
           <div class="lobby-copy">
-            <div class="lobby-mobile-actions">
-              <button id="openGuideButton" type="button" class="ghost-button lobby-mobile-button" data-i18n="lobby.openGuide">설명</button>
-              <button id="openRankingButton" type="button" class="ghost-button lobby-mobile-button" data-i18n="lobby.mobileRanking">Ranking</button>
+            <div class="launcher-status-row" hidden aria-hidden="true">
+              <strong id="lobbyNicknameDisplay" class="lobby-player-name"></strong>
+              <strong id="lobbyRankDisplay" class="lobby-player-rank">-</strong>
+              <span id="hujupayCard" class="lobby-player-wallet-inline" hidden>
+                <strong id="hujupayBalanceDisplay" class="lobby-player-wallet-value">0</strong>
+                <img src="/processed-assets/item/Fuju.png" alt="" class="wallet-coin-icon wallet-coin-icon--inline" aria-hidden="true">
+              </span>
             </div>
-
-            <div class="lobby-player-row">
-              <div class="lobby-player-info">
-                <div class="lobby-player-heading">
-                  <strong id="lobbyNicknameDisplay" class="lobby-player-name"></strong>
-                  <strong id="lobbyRankDisplay" class="lobby-player-rank">-</strong>
-                  <span id="hujupayCard" class="lobby-player-wallet-inline" hidden>
-                    <strong id="hujupayBalanceDisplay" class="lobby-player-wallet-value">0</strong>
-                    <img src="/processed-assets/item/Fuju.png" alt="" class="wallet-coin-icon wallet-coin-icon--inline" aria-hidden="true">
-                  </span>
-                </div>
-                <section class="lobby-wallet-card" hidden aria-hidden="true">
-                  <span class="lobby-wallet-label" data-i18n="wallet.title">?꾩??섏씠</span>
-                  <span class="wallet-inline-value">
-                    <strong class="lobby-wallet-value">0</strong>
-                    <img src="/processed-assets/item/Fuju.png" alt="" class="wallet-coin-icon" aria-hidden="true">
-                  </span>
-                </section>
-              </div>
-              <div class="lobby-player-side">
-                <section class="lobby-wallet-card" hidden aria-hidden="true">
-                  <span class="lobby-wallet-label" data-i18n="wallet.title">후쥬페이</span>
-                  <span class="wallet-inline-value">
-                    <strong class="lobby-wallet-value">0</strong>
-                    <img src="/processed-assets/item/Fuju.png" alt="" class="wallet-coin-icon" aria-hidden="true">
-                  </span>
-                </section>
-                <button id="profileInfoButton" type="button" class="ghost-button ghost-button--small lobby-profile-button" data-i18n="profile.open" hidden>My Info</button>
-              </div>
-            </div>
-
-            <section class="account-card" id="accountCard" hidden aria-hidden="true">
-              <div class="account-card-head">
-                <span id="authModeBadge" class="account-badge account-badge--guest" data-i18n="auth.guestBadge">Guest</span>
-              </div>
-              <strong id="authDisplayName" class="account-display" data-i18n="auth.guestTitle">Playing as Guest</strong>
-              <p id="authSummaryText" class="account-summary-text"></p>
-            </section>
 
             <input id="nicknameInput" name="nickname" type="text" maxlength="12" autocomplete="nickname" hidden>
-            <section class="lobby-feature-card" aria-label="Snack Rush Hero">
-              <div class="lobby-feature-visual">
-                <picture class="lobby-feature-picture">
-                  <source media="(max-width: 760px)" srcset="/special/intro_figure2.png?v=20260402-figure2">
-                  <img src="/scene/1.jpg" alt="Snack Rush Preview" class="lobby-feature-image">
-                </picture>
-                <div class="lobby-feature-overlay">
-                  <span class="lobby-feature-tag" data-i18n="lobby.heroEyebrow">Snack Rush</span>
-                  <strong class="lobby-feature-title" data-i18n="lobby.heroTitle">스낵러시</strong>
-                </div>
-              </div>
-              <form id="startForm" class="lobby-feature-actions">
-                <button id="startButton" type="submit" class="solid-button lobby-start-btn" disabled data-i18n="lobby.start">Start Game</button>
-                <button id="heroGuideButton" type="button" class="ghost-button lobby-guide-launch" data-i18n="lobby.openGuide">설명</button>
-              </form>
+
+            <section class="launcher-home-grid" aria-label="Games">
+              <button
+                id="openSnackRushEntryButton"
+                type="button"
+                class="launcher-game-tile launcher-game-tile--snack"
+                data-game-launch
+                data-game-id="snack-rush"
+              >
+                <span class="launcher-game-thumb launcher-game-thumb--snack" aria-hidden="true"></span>
+                <span class="launcher-game-footer">
+                  <span class="launcher-game-title">?ㅻ궢?ъ떆</span>
+                  <span class="launcher-game-play" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                      <path d="M8 6.5v11l8.5-5.5z"></path>
+                    </svg>
+                  </span>
+                </span>
+              </button>
+
+              <button
+                id="openCookingEntryButton"
+                type="button"
+                class="launcher-game-tile launcher-game-tile--cooking"
+                data-game-launch
+                data-game-id="cooking"
+              >
+                <span class="launcher-game-thumb launcher-game-thumb--cooking" aria-hidden="true"></span>
+                <span class="launcher-game-footer">
+                  <span class="launcher-game-title">?붾━???/span>
+                  <span class="launcher-game-play" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                      <path d="M8 6.5v11l8.5-5.5z"></path>
+                    </svg>
+                  </span>
+                </span>
+              </button>
+
+              <button type="button" class="launcher-game-tile launcher-game-tile--drawing" disabled aria-disabled="true">
+                <span class="launcher-game-thumb launcher-game-thumb--drawing" aria-hidden="true"></span>
+                <span class="launcher-game-footer">
+                  <span class="launcher-game-title">洹몃┝洹몃━湲?/span>
+                  <span class="launcher-game-play" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                      <path d="M8 6.5v11l8.5-5.5z"></path>
+                    </svg>
+                  </span>
+                </span>
+              </button>
             </section>
           </div>
         </section>
+        <section class="game-entry-screen cooking-entry-screen" id="cookingEntryScreen" data-game-entry-screen="cooking">
+          <header class="snack-rush-entry-header">
+            <button id="cookingEntryBackButton" type="button" class="snack-rush-entry-back" data-game-entry-back="cooking" aria-label="Close">
+              <span class="snack-rush-entry-close" aria-hidden="true">&times;</span>
+              <span class="sr-only" data-i18n="ranking.close">Close</span>
+            </button>
+          </header>
+
+          <section class="cooking-entry-panels">
+            <section class="lobby-feature-card cooking-entry-card" aria-label="Cooking Entry">
+              <div class="lobby-feature-visual cooking-entry-visual">
+                <div class="lobby-feature-overlay cooking-entry-overlay">
+                  <span class="lobby-feature-tag">Cooking Contest</span>
+                  <strong class="lobby-feature-title">Cooking Contest</strong>
+                </div>
+              </div>
+
+              <div class="snack-rush-entry-copy">
+                <span class="snack-rush-entry-tag">Next Module</span>
+                <strong class="snack-rush-entry-title">Launcher-ready scaffold</strong>
+                <p id="cookingEntryStatus" class="cooking-entry-status">
+                  The cooking game entry, runtime, and launcher route are in place. Gameplay and assets come next.
+                </p>
+              </div>
+
+              <div class="lobby-feature-actions cooking-entry-actions">
+                <button type="button" class="ghost-button snack-rush-entry-guide-button" disabled>Coming Soon</button>
+                <button id="cookingStartButton" type="button" class="solid-button snack-rush-entry-start-button" disabled aria-disabled="true">
+                  <span>Coming Soon</span>
+                </button>
+              </div>
+            </section>
+          </section>
+        </section>
 
         <section class="lobby-panels">
-          <section class="shop-panel lobby-chat-panel">
+          <section class="chat-panel lobby-chat-panel launcher-panel-section launcher-panel-section--chat">
             <div class="section-head">
               <div class="section-head-main">
-                <button id="shopBackButton" type="button" class="panel-back-button" data-i18n="lobby.mobileBack">Back</button>
-                <h2 data-i18n="chat.title">로비 채팅</h2>
+                <button id="chatBackButton" type="button" class="panel-back-button" data-i18n="lobby.mobileBack">Back</button>
+                <h2 data-i18n="chat.title">Lobby Chat</h2>
               </div>
-              <span class="chat-live-badge" data-i18n="chat.liveBadge">LIVE</span>
             </div>
 
-            <p class="chat-panel-lead" data-i18n="chat.lead">로그인 유저끼리만 한 줄 채팅을 주고받을 수 있어요.</p>
-
             <div id="chatGuestGate" class="chat-guest-gate" hidden>
-              <p data-i18n="chat.guestHint">채팅을 쓰려면 로그인해 주세요.</p>
+              <p data-i18n="chat.guestHint">Sign in first to join the lobby chat.</p>
               <button id="chatLoginButton" type="button" class="ghost-button ghost-button--small" data-i18n="auth.login">Login</button>
             </div>
 
@@ -156,42 +218,18 @@
                 spellcheck="false"
                 data-i18n="chat.placeholder"
                 data-i18n-attr="placeholder"
-                placeholder="메세지를 입력하세요"
+                placeholder="Type a message"
               >
-              <button id="chatSendButton" type="submit" class="solid-button" data-i18n="chat.send">보내기</button>
+              <button id="chatSendButton" type="submit" class="solid-button" data-i18n="chat.send">Send</button>
             </form>
           </section>
 
-          <section class="ranking-card">
-            <div class="ranking-head">
-              <div class="section-head-main">
-                <button id="rankingBackButton" type="button" class="panel-back-button" data-i18n="lobby.mobileBack">Back</button>
-                <h2 data-i18n="ranking.title">Live Ranking</h2>
-                <span class="season-badge season-badge--current" data-i18n="ranking.currentSeasonBadge">Season 1</span>
-              </div>
-              <div class="ranking-head-actions">
-                <button id="viewAllRankingsButton" type="button" class="ghost-button ghost-button--small" data-i18n="ranking.viewAll">View All</button>
-                <button id="refreshRankingButton" type="button" class="ghost-button ghost-button--small" data-i18n="ranking.refresh">Refresh</button>
-              </div>
-            </div>
-            <section id="rankingSelfCard" class="ranking-self-card">
-              <div class="ranking-self-copy">
-                <span class="ranking-self-label" data-i18n="ranking.myTitle">내 순위</span>
-                <strong id="rankingSelfName" class="ranking-self-name">-</strong>
-              </div>
-              <strong id="rankingSelfRank" class="ranking-self-rank">-</strong>
-            </section>
-            <p class="ranking-status" id="rankingStatus" data-i18n="ranking.loading">Loading...</p>
-            <ol class="ranking-list" id="rankingList"></ol>
-            <button id="rankingViewAllBottomButton" type="button" class="ghost-button ghost-button--small ranking-view-all-bottom" data-i18n="ranking.viewMore">11위 이하 보기</button>
-          </section>
-        </section>
 
+        </section>
         <nav class="lobby-bottom-nav" aria-label="Mobile navigation">
           <button id="mobileHomeButton" type="button" class="mobile-nav-button mobile-nav-button--active" data-mobile-nav="home" data-i18n="mobileNav.home">Home</button>
-          <button id="mobileShopButton" type="button" class="mobile-nav-button" data-mobile-nav="shop" data-i18n="mobileNav.shop">상점</button>
-          <button id="mobileRankingButton" type="button" class="mobile-nav-button" data-mobile-nav="ranking" data-i18n="mobileNav.ranking">Ranking</button>
-          <button id="mobileAccountButton" type="button" class="mobile-nav-button" data-mobile-nav="account" data-i18n="mobileNav.account">Account</button>
+          <button id="mobileChatButton" type="button" class="mobile-nav-button" data-mobile-nav="chat" data-i18n="mobileNav.chat">Chat</button>
+          <button id="mobileAccountButton" type="button" class="mobile-nav-button" data-mobile-nav="account" data-i18n="mobileNav.account">My Info</button>
           <button id="mobileSettingsButton" type="button" class="mobile-nav-button" data-mobile-nav="settings" data-i18n="mobileNav.settings">Settings</button>
         </nav>
       </section>
@@ -207,6 +245,72 @@
               data-i18n="canvas.aria"
               data-i18n-attr="aria-label"
             ></canvas>
+
+            <div class="overlay snack-rush-prestart-overlay" id="snackRushPrestartOverlay" hidden>
+              <div class="snack-rush-prestart-shell">
+                <section class="lobby-feature-card snack-rush-prestart-card" aria-label="Snack Rush Prestart">
+                  <header class="snack-rush-prestart-topbar">
+                    <button id="snackRushPrestartBackButton" type="button" class="snack-rush-entry-back snack-rush-prestart-back" aria-label="Close">
+                      <span class="snack-rush-entry-close" aria-hidden="true">&times;</span>
+                      <span class="sr-only" data-i18n="ranking.close">Close</span>
+                    </button>
+                  </header>
+
+                  <div class="lobby-feature-visual">
+                    <picture class="lobby-feature-picture">
+                      <source media="(max-width: 760px)" srcset="/special/intro_figure2.png?v=20260402-figure2">
+                      <img src="/scene/1.jpg" alt="Snack Rush Preview" class="lobby-feature-image">
+                    </picture>
+                    <div class="lobby-feature-overlay snack-rush-entry-hero-overlay">
+                      <span class="lobby-feature-tag" data-i18n="lobby.heroEyebrow">Snack Rush</span>
+                      <strong class="lobby-feature-title" data-i18n="lobby.heroTitle">Snack Rush</strong>
+                    </div>
+                  </div>
+
+                  <div class="snack-rush-entry-meta">
+                    <div class="snack-rush-entry-thumb">
+                      <img src="/scene/1.jpg" alt="" class="snack-rush-entry-thumb-image" aria-hidden="true">
+                    </div>
+                    <div class="snack-rush-entry-copy">
+                      <span class="snack-rush-entry-tag" data-i18n="lobby.heroEyebrow">Snack Rush</span>
+                      <strong class="snack-rush-entry-title" data-i18n="lobby.heroTitle">Snack Rush</strong>
+                      <p class="snack-rush-prestart-lead" data-i18n="lobby.lead">Catch falling snacks, avoid traps, and chase the highest score.</p>
+                    </div>
+                  </div>
+
+                  <form id="startForm" class="lobby-feature-actions snack-rush-entry-actions">
+                    <button id="snackRushGuideButton" type="button" class="ghost-button snack-rush-entry-guide-button" data-i18n="lobby.openGuide">Guide</button>
+                    <button id="startButton" type="submit" class="solid-button snack-rush-entry-start-button" disabled aria-label="Start Game" title="Start Game">
+                      <span class="snack-rush-entry-icon snack-rush-entry-icon--play" aria-hidden="true"></span>
+                      <span class="snack-rush-entry-start-label" data-i18n="boot.ready.button">Start Game</span>
+                    </button>
+                  </form>
+                </section>
+
+                <section class="ranking-card snack-rush-ranking-panel snack-rush-prestart-ranking-panel">
+                  <div class="ranking-head">
+                    <div class="section-head-main">
+                      <h2 data-i18n="ranking.title">Live Ranking</h2>
+                      <span class="season-badge season-badge--current" data-i18n="ranking.currentSeasonBadge">Season 1</span>
+                    </div>
+                    <div class="ranking-head-actions">
+                      <button id="viewAllRankingsButton" type="button" class="ghost-button ghost-button--small" data-i18n="ranking.viewAll">View All</button>
+                      <button id="refreshRankingButton" type="button" class="ghost-button ghost-button--small" data-i18n="ranking.refresh">Refresh</button>
+                    </div>
+                  </div>
+                  <section id="rankingSelfCard" class="ranking-self-card">
+                    <div class="ranking-self-copy">
+                      <span class="ranking-self-label" data-i18n="ranking.myTitle">My Rank</span>
+                      <strong id="rankingSelfName" class="ranking-self-name">-</strong>
+                    </div>
+                    <strong id="rankingSelfRank" class="ranking-self-rank">-</strong>
+                  </section>
+                  <p class="ranking-status" id="rankingStatus" data-i18n="ranking.loading">Loading...</p>
+                  <ol class="ranking-list" id="rankingList"></ol>
+                  <button id="rankingViewAllBottomButton" type="button" class="ghost-button ghost-button--small ranking-view-all-bottom" data-i18n="ranking.viewMore">Show 11+</button>
+                </section>
+              </div>
+            </div>
 
             <div class="overlay result-overlay" id="gameOverlay" hidden>
               <div class="overlay-card overlay-card--result">
@@ -281,7 +385,7 @@
             <div class="auth-email-row">
               <input id="authEmailInput" name="email" type="email" autocomplete="email" required>
               <select id="authEmailDomainSelect" class="auth-email-domain" aria-label="Email domain">
-                <option value="" data-i18n="auth.emailDomainAuto">직접입력</option>
+                <option value="" data-i18n="auth.emailDomainAuto">嶺뚯쉳?????놁졑</option>
                 <option value="gmail.com">gmail.com</option>
                 <option value="naver.com">naver.com</option>
                 <option value="daum.net">daum.net</option>
@@ -297,7 +401,7 @@
             <span data-i18n="auth.nickname">Nickname</span>
             <div class="auth-nickname-row">
               <input id="authNicknameInput" name="nickname" type="text" autocomplete="nickname" maxlength="12">
-              <button id="authNicknameCheckButton" type="button" class="ghost-button auth-check-button" data-i18n="auth.nicknameCheck">중복확인</button>
+              <button id="authNicknameCheckButton" type="button" class="ghost-button auth-check-button" data-i18n="auth.nicknameCheck">繞벿살탮??筌먦끉逾?/button>
             </div>
             <p id="authNicknameStatus" class="auth-inline-status" hidden></p>
           </label>
@@ -306,7 +410,7 @@
             <div class="auth-password-row">
               <input id="authPasswordInput" name="password" type="password" autocomplete="current-password" minlength="6" required>
               <button id="authPasswordToggleButton" type="button" class="auth-visibility-button" aria-label="Show password">
-                <span class="sr-only" data-i18n="auth.showPassword">비밀번호 보기</span>
+                <span class="sr-only" data-i18n="auth.showPassword">?????뺢퀡????곌랜??뵳?/span>
               </button>
             </div>
           </label>
@@ -315,7 +419,7 @@
             <div class="auth-password-row">
               <input id="authConfirmInput" name="confirmPassword" type="password" autocomplete="new-password" minlength="6">
               <button id="authConfirmToggleButton" type="button" class="auth-visibility-button" aria-label="Show password confirmation">
-                <span class="sr-only" data-i18n="auth.showPassword">비밀번호 보기</span>
+                <span class="sr-only" data-i18n="auth.showPassword">?????뺢퀡????곌랜??뵳?/span>
               </button>
             </div>
           </label>
@@ -333,7 +437,6 @@
     <div class="modal-overlay" id="profileModal" hidden>
       <div class="modal-card profile-modal-card">
         <div class="modal-head">
-          <h2 data-i18n="profile.title">My Info</h2>
           <button id="closeProfileModalButton" type="button" class="ghost-button ghost-button--small" data-i18n="ranking.close">Close</button>
         </div>
         <p id="profileStatus" class="profile-status" hidden></p>
@@ -343,12 +446,12 @@
           <strong id="profileAccountName" class="profile-account-name">-</strong>
           <p id="profileAccountSummary" class="profile-account-summary">-</p>
           <section class="profile-wallet-card">
-            <span class="profile-wallet-label" data-i18n="wallet.title">후쥬페이</span>
+            <span class="profile-wallet-label" data-i18n="wallet.title">?熬???瑜곷턄</span>
             <span class="wallet-inline-value wallet-inline-value--profile">
               <strong id="profileHujupayBalance" class="profile-wallet-value">0</strong>
               <img src="/processed-assets/item/Fuju.png" alt="" class="wallet-coin-icon wallet-coin-icon--profile" aria-hidden="true">
             </span>
-            <p id="profileHujupaySummary" class="profile-wallet-summary">현재 시즌 점수 구간 보상으로 후쥬페이를 모을 수 있어요.</p>
+            <p id="profileHujupaySummary" class="profile-wallet-summary">?熬곣뫗????戮겹궢 ???????뚮뜆???곌랜?삥묾??怨쀬Ŧ ?熬???瑜곷턄??嶺뚮ㅄ維???????곗꽑??</p>
           </section>
           <div class="profile-nickname-tools">
             <button id="profileMessagesButton" type="button" class="ghost-button ghost-button--small" data-i18n="messages.open">Message</button>
@@ -368,35 +471,58 @@
           </form>
         </section>
 
-        <section class="profile-section">
+        <section class="profile-section profile-shop-section">
           <div class="profile-section-head">
             <div>
-              <h3 data-i18n="profile.currentSeasonRecordTitle">Current Season Record</h3>
-              <p class="profile-section-subtitle" data-i18n="profile.currentSeasonBody">This is your best record in the current season.</p>
+              <h3 data-i18n="shop.title">Shop</h3>
+              <p class="profile-section-subtitle" data-i18n="shop.guestHint">Sign in to buy and equip skins.</p>
             </div>
+            <span class="shop-balance-pill">
+              <img src="/processed-assets/item/Fuju.png" alt="" class="wallet-coin-icon-sm" aria-hidden="true">
+              <strong id="shopBalanceDisplay" class="shop-balance-value">0</strong>
+            </span>
           </div>
-          <div id="profileCurrentSeasonRecord" class="profile-record-card"></div>
+
+          <div id="shopGuestGate" class="shop-guest-gate" hidden>
+            <p data-i18n="shop.guestHint">Sign in to buy and equip skins.</p>
+          </div>
+
+          <div id="shopSkinList" class="shop-skin-list">
+            <article id="shopSkin0Card" class="shop-skin-card">
+              <div class="shop-skin-preview">
+                <span class="shop-skin-preview-label">S0</span>
+              </div>
+              <div class="shop-skin-info">
+                <strong data-i18n="shop.skin0.name">Default Skin</strong>
+                <p data-i18n="shop.skin0.desc">Kaguya (default)</p>
+              </div>
+              <button id="equipSkin0Button" type="button" class="shop-action-btn shop-action-btn--equip" data-i18n="shop.equip">Equip</button>
+            </article>
+
+            <article id="shopSkinBCard" class="shop-skin-card shop-skin-card--locked">
+              <div class="shop-skin-preview shop-skin-preview--locked">
+                <span class="shop-skin-preview-label">S1</span>
+              </div>
+              <div class="shop-skin-info">
+                <strong data-i18n="shop.skinB.name">Skin B</strong>
+                <p data-i18n="shop.skinB.desc">Coming soon</p>
+              </div>
+              <button id="buySkinBButton" type="button" class="shop-action-btn shop-action-btn--buy" disabled>Coming Soon</button>
+            </article>
+
+            <article id="shopSkinCCard" class="shop-skin-card shop-skin-card--locked">
+              <div class="shop-skin-preview shop-skin-preview--locked">
+                <span class="shop-skin-preview-label">S2</span>
+              </div>
+              <div class="shop-skin-info">
+                <strong data-i18n="shop.skinC.name">Skin C</strong>
+                <p data-i18n="shop.skinC.desc">Coming soon</p>
+              </div>
+              <button id="buySkinCButton" type="button" class="shop-action-btn shop-action-btn--buy" disabled>Coming Soon</button>
+            </article>
+          </div>
         </section>
 
-        <section class="profile-section">
-          <div class="profile-section-head">
-            <div>
-              <h3 data-i18n="profile.season1RecordTitle">Season 0 Record</h3>
-              <p class="profile-section-subtitle" id="profileSeason1Period">2026.03.31 ~ 2026.04.01</p>
-            </div>
-          </div>
-          <div id="profileSeason1Record" class="profile-record-card"></div>
-        </section>
-
-        <section class="profile-section">
-          <div class="profile-section-head">
-            <div>
-              <h3 data-i18n="profile.season1Top10Title">Season 0 Top 10</h3>
-              <p class="profile-section-subtitle" data-i18n="profile.season1Top10Body">These are the final Top 10 standings from Season 0.</p>
-            </div>
-          </div>
-          <ol id="profileSeason1TopList" class="ranking-list"></ol>
-        </section>
       </div>
     </div>
 
@@ -427,7 +553,6 @@
     <div class="modal-overlay" id="settingsModal" hidden>
       <div class="modal-card settings-modal-card">
         <div class="modal-head">
-          <h2 data-i18n="settings.title">Settings</h2>
           <button id="closeSettingsModalButton" type="button" class="ghost-button ghost-button--small" data-i18n="ranking.close">Close</button>
         </div>
         <section class="settings-group">
@@ -645,9 +770,9 @@
 
           for (var i = 0; i < px.length; i += 4) {
             var r = px[i], g = px[i + 1], b = px[i + 2];
-            // 녹색 크로마키 제거: G 우세하고 충분히 채도 있는 픽셀
+            // ?獄?繹???餓λ뜉彛??꾪뀞 ??蹂ㅽ깴: G ??⑥れ돪???겶??寃몃쳳???嶺??х뙴????덈츎 ???
             if (g > 80 && g > r * 1.3 && g > b * 1.3) {
-              // 경계 부드럽게: 반투명 처리
+              // ?롪퍔????遊붋??類ㅼ벀?? ?꾩룇瑗??듭춻?嶺뚳퐣瑗??
               var greenness = Math.min(1, (g - Math.max(r, b)) / 80);
               px[i + 3] = Math.round(px[i + 3] * (1 - greenness));
             }

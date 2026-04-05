@@ -1,4 +1,4 @@
-import { getCurrentAuthIdToken, initAuth } from "../game/auth.js";
+import { getCurrentAuthIdToken, initAuth } from "../game/shared/auth/auth-service.js";
 import {
   getAdminAccessConfig,
   getAvailableRankingSeasons,
@@ -10,8 +10,8 @@ const CURRENT_SEASON = getCurrentRankingSeason();
 const RANKING_SEASONS = getAvailableRankingSeasons().sort((left, right) => right.id - left.id);
 const adminAccessConfig = getAdminAccessConfig();
 const DEFAULT_APP_SERVER_ORIGIN = "http://localhost:3000";
-const DEFAULT_PAYOUT_MESSAGE_TITLE = "{seasonLabel} 보상 지급 안내";
-const DEFAULT_PAYOUT_MESSAGE_BODY = "축하합니다. {seasonLabel} 최종 순위 {rank}위 보상으로 {rewardAmount} HujuPay를 지급했습니다.";
+const DEFAULT_PAYOUT_MESSAGE_TITLE = "[Legacy] {seasonLabel} 정산 안내";
+const DEFAULT_PAYOUT_MESSAGE_BODY = "{seasonLabel} 최종 순위 {rank}위 기록에 대한 레거시 정산으로 {rewardAmount} HujuPay를 지급했습니다.";
 
 const state = {
   previewResult: null,
@@ -388,7 +388,7 @@ function renderPayoutMessagePreview() {
   elements.payoutMessagePreviewBody.textContent = renderTemplate(getPayoutMessageBodyTemplate(), previewContext);
 
   if (!sampleEntry) {
-    elements.payoutMessagePreviewMeta.textContent = "대상 미리보기를 불러오면 선택된 플레이어 기준으로 실제 지급 메시지를 확인할 수 있습니다.";
+    elements.payoutMessagePreviewMeta.textContent = "대상 미리보기를 불러오면 선택된 플레이어 기준으로 실제 레거시 정산 메시지를 확인할 수 있습니다.";
     return;
   }
 
@@ -609,8 +609,8 @@ async function refreshPreview() {
 
   elements.previewLoadButton.disabled = true;
   elements.payoutRefreshButton.disabled = true;
-  setInlineStatus(elements.payoutStatus, "시즌 보상 미리보기를 계산하는 중...");
-  renderPreviewEmptyRow("보상 대상을 계산하는 중입니다.");
+  setInlineStatus(elements.payoutStatus, "레거시 시즌 정산 대상을 계산하는 중...");
+  renderPreviewEmptyRow("레거시 정산 대상을 계산하는 중입니다.");
 
   try {
     state.previewResult = await runAdminActionRequest("season-payout-preview", {
@@ -624,14 +624,14 @@ async function refreshPreview() {
     pruneSelectedPlayerIds();
     applyPreviewSummary();
     renderPreviewRows();
-    setInlineStatus(elements.payoutStatus, `${formatText(state.previewResult.seasonLabel)} 보상 대상을 불러왔습니다.`, "success");
+    setInlineStatus(elements.payoutStatus, `${formatText(state.previewResult.seasonLabel)} 레거시 정산 대상을 불러왔습니다.`, "success");
   } catch (error) {
     console.error(error);
     state.previewResult = null;
     state.selectedPlayerIds.clear();
     applyPreviewSummary();
-    renderPreviewEmptyRow(formatText(error?.message, "보상 대상을 불러오지 못했습니다."));
-    setInlineStatus(elements.payoutStatus, formatText(error?.message, "보상 대상을 불러오지 못했습니다."), "error");
+    renderPreviewEmptyRow(formatText(error?.message, "레거시 정산 대상을 불러오지 못했습니다."));
+    setInlineStatus(elements.payoutStatus, formatText(error?.message, "레거시 정산 대상을 불러오지 못했습니다."), "error");
   } finally {
     elements.previewLoadButton.disabled = state.applyInFlight;
     elements.payoutRefreshButton.disabled = state.applyInFlight;
@@ -721,13 +721,13 @@ async function applySelectedEntries() {
   }
 
   const seasonLabel = getSelectedSeasonLabel();
-  if (!window.confirm(`${seasonLabel} 보상을 ${selectedEntries.length}명에게 지급할까요?`)) {
+  if (!window.confirm(`${seasonLabel} 레거시 정산 후쥬를 ${selectedEntries.length}명에게 지급할까요?`)) {
     return;
   }
 
   state.applyInFlight = true;
   updateActionButtons();
-  setInlineStatus(elements.previewApplyStatus, `${selectedEntries.length}명 지급 중...`);
+  setInlineStatus(elements.previewApplyStatus, `${selectedEntries.length}명 레거시 정산 지급 중...`);
 
   const summary = {
     paidCount: 0,
@@ -777,19 +777,18 @@ async function applySelectedEntries() {
   setInlineStatus(elements.previewApplyStatus, summarizeApplyResults(summary), tone);
 
   await refreshPreview();
-  await refreshPayoutReport();
 }
 
 async function refreshAllData() {
   elements.payoutRefreshButton.disabled = true;
-  setInlineStatus(elements.payoutStatus, "지급 센터 데이터를 새로고침하는 중...");
+  setInlineStatus(elements.payoutStatus, "레거시 정산 센터 데이터를 새로고침하는 중...");
   if (state.previewResult) {
     await refreshPreview();
   }
   await refreshPayoutReport();
 }
 
-function resetPreviewState(message = "미리보기를 실행하면 시즌 보상 대상이 여기에 표시됩니다.") {
+function resetPreviewState(message = "미리보기를 실행하면 레거시 시즌 정산 대상이 여기에 표시됩니다.") {
   state.previewResult = null;
   state.selectedPlayerIds.clear();
   applyPreviewSummary();
@@ -833,7 +832,6 @@ function bindEvents() {
     void refreshPreview();
   });
   elements.payoutLoadButton?.addEventListener("click", () => {
-    void refreshPayoutReport();
   });
   elements.payoutRefreshButton?.addEventListener("click", () => {
     void refreshAllData();
@@ -861,18 +859,16 @@ function bindEvents() {
       elements.payoutMessageBody.value = DEFAULT_PAYOUT_MESSAGE_BODY;
     }
     renderPayoutMessagePreview();
-    setInlineStatus(elements.payoutStatus, "지급 메시지 기본 문구를 복원했습니다.");
+    setInlineStatus(elements.payoutStatus, "레거시 정산 메시지 기본 문구를 복원했습니다.");
   });
   elements.previewTableBody?.addEventListener("change", handlePreviewTableChange);
   elements.payoutSeason?.addEventListener("change", () => {
     resetPreviewState("시즌이 바뀌었습니다. 미리보기를 다시 실행해주세요.");
     renderPayoutMessagePreview();
-    void refreshPayoutReport();
   });
   elements.payoutLimit?.addEventListener("change", () => {
     resetPreviewState("대상 수가 바뀌었습니다. 미리보기를 다시 실행해주세요.");
     renderPayoutMessagePreview();
-    void refreshPayoutReport();
   });
 }
 
@@ -880,7 +876,7 @@ async function bootstrapPayoutPage() {
   try {
     await requireAuthorizedAdmin();
   } catch (error) {
-    console.warn("관리자 지급 센터 접근이 차단되었습니다.", error);
+    console.warn("관리자 레거시 정산 센터 접근이 차단되었습니다.", error);
     return;
   }
 
@@ -892,11 +888,11 @@ async function bootstrapPayoutPage() {
     elements.payoutMessageBody.value = DEFAULT_PAYOUT_MESSAGE_BODY;
   }
   applyPreviewSummary();
-  renderPreviewEmptyRow("미리보기를 실행하면 시즌 보상 대상이 여기에 표시됩니다.");
-  renderReportEmptyRow("지급 완료 내역을 불러오는 중입니다.");
+  renderPreviewEmptyRow("미리보기를 실행하면 레거시 시즌 정산 대상이 여기에 표시됩니다.");
+  renderReportEmptyRow("레거시 정산 완료 내역은 필요할 때 수동으로 불러오세요.");
   renderPayoutMessagePreview();
   bindEvents();
-  await refreshPayoutReport();
+  setInlineStatus(elements.payoutStatus, "레거시 정산 도구입니다. 필요할 때만 미리보기 또는 완료 내역을 불러오세요.");
 }
 
 void bootstrapPayoutPage();

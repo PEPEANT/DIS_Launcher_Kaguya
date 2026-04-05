@@ -298,6 +298,26 @@ body {
   border: 1px solid rgba(217, 111, 43, 0.12);
 }
 
+.message-preview-frame--notice {
+  background: linear-gradient(180deg, rgba(232, 241, 255, 0.96) 0%, rgba(219, 232, 255, 0.92) 100%);
+  border-color: rgba(82, 125, 204, 0.22);
+}
+
+.message-preview-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  min-height: 1.35rem;
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #4c5f8f, #2a3658);
+  color: #f4f7ff;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
 .message-preview-title {
   margin: 0;
   font-size: 1rem;

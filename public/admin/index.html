@@ -18,10 +18,21 @@
         </div>
         <div class="admin-header-actions">
           <p class="admin-updated">갱신: <span id="lastUpdated">-</span></p>
-          <a href="./payouts.html" class="refresh-button refresh-button--secondary">지급 센터</a>
+          <a href="./payouts.html" class="refresh-button refresh-button--secondary">레거시 정산 센터</a>
           <button id="refreshButton" type="button" class="refresh-button">새로고침</button>
         </div>
       </header>
+
+      <section class="panel-card">
+        <div class="panel-head">
+          <h2>운영 원칙</h2>
+          <p>현재 운영 기준은 게임 점수와 후쥬 지급을 분리하고, 일상 운영을 이벤트·공지 중심으로 처리하는 것입니다.</p>
+        </div>
+        <div class="player-detail-empty">
+          <strong>게임 점수는 각 게임 랭킹용이고, 후쥬는 이벤트·운영 지급용입니다.</strong>
+          <p>일상 운영은 로비 공지, 이벤트 메시지, 운영 지급을 우선 사용하고 레거시 정산 센터는 기존 데이터 보정이나 예외 처리에만 사용하세요.</p>
+        </div>
+      </section>
 
       <section class="admin-stats">
         <article class="stat-card">
@@ -63,14 +74,14 @@
       <section class="admin-ops-grid">
         <section class="panel-card admin-ops-card">
           <div class="panel-head">
-            <h2>시즌 보상 지급</h2>
-            <p>지급 대상 표, 수동 uid 보정, 지급 완료 내역을 전용 페이지에서 한 번에 처리합니다.</p>
+            <h2>레거시 정산 센터</h2>
+            <p>기존 시즌 데이터 정산, uid 누락 보정, 예외 처리 내역 확인만 전용 페이지에서 다룹니다.</p>
           </div>
           <div class="player-detail-empty">
-            <strong>이제 입력창 대신 지급 대상 리스트를 보고 바로 선택 지급할 수 있습니다.</strong>
-            <p>시즌별 보상 대상, 이미 지급된 행, uid가 비어 있는 행을 한 화면에서 확인하고 필요한 줄만 골라 처리하세요.</p>
+            <strong>일상 운영용 메인 도구가 아니라, 기존 데이터 정산과 누락 보정을 위한 예외 처리 센터입니다.</strong>
+            <p>시즌별 정산 대상, 이미 처리된 행, uid가 비어 있는 행을 한 화면에서 확인하고 필요한 줄만 골라 처리하세요.</p>
             <div class="admin-button-row">
-              <a href="./payouts.html" class="refresh-button">지급 센터 열기</a>
+              <a href="./payouts.html" class="refresh-button">레거시 정산 센터 열기</a>
             </div>
           </div>
         </section>
@@ -92,8 +103,8 @@
 
             <section class="admin-action-card">
               <div class="admin-action-head">
-                <h3>후쥬 지급/차감</h3>
-                <p>금액과 사유를 넣으면 아래 미리보기 그대로 안내 메시지가 함께 발송됩니다. 제목과 본문은 필요할 때만 수정하세요.</p>
+                <h3>운영 후쥬 지급/보정</h3>
+                <p>이벤트 지급, 누락 보완, 운영 보정에 사용하는 도구입니다. 금액과 사유를 넣으면 아래 미리보기 그대로 안내 메시지가 함께 발송됩니다.</p>
               </div>
               <form id="walletAdjustForm" class="admin-form-grid admin-form-grid--compact">
                 <label class="admin-field">
@@ -113,15 +124,15 @@
                   <textarea id="walletAdjustBody" rows="3" placeholder="비워두면 금액과 사유를 반영한 기본 문구를 사용합니다."></textarea>
                 </label>
                 <div class="admin-button-row admin-field--wide">
-                  <button id="walletAdjustApplyButton" type="button" class="refresh-button">후쥬 증감 적용</button>
+                  <button id="walletAdjustApplyButton" type="button" class="refresh-button">운영 지급/보정 적용</button>
                 </div>
               </form>
               <div class="message-preview-card">
                 <p class="message-preview-label">실제 발송 미리보기</p>
                 <p id="walletAdjustPreviewMeta" class="message-preview-meta">플레이어를 선택하고 금액을 입력하면 여기서 실제 발송 내용을 확인할 수 있습니다.</p>
                 <div class="message-preview-frame">
-                  <strong id="walletAdjustPreviewTitle" class="message-preview-title">후쥬페이 변동 안내</strong>
-                  <p id="walletAdjustPreviewBody" class="message-preview-body">관리자가 후쥬 변동 안내 메시지를 보냅니다.</p>
+                  <strong id="walletAdjustPreviewTitle" class="message-preview-title">운영 후쥬 지급 안내</strong>
+                  <p id="walletAdjustPreviewBody" class="message-preview-body">관리자가 운영 후쥬 안내 메시지를 보냅니다.</p>
                 </div>
               </div>
             </section>
@@ -178,6 +189,49 @@
                   <button id="deleteMessageApplyButton" type="button" class="refresh-button refresh-button--danger">메시지 삭제</button>
                 </div>
               </form>
+            </section>
+            <section class="admin-action-card">
+              <div class="admin-action-head">
+                <h3>로비 공지 보내기</h3>
+                <p>플레이어를 고르지 않고 로비 채팅 피드에 관리자 공지 버블을 바로 보냅니다.</p>
+              </div>
+              <form id="lobbyNoticeForm" class="admin-form-grid admin-form-grid--compact">
+                <label class="admin-field">
+                  <span>발신자 표기</span>
+                  <input id="lobbyNoticeNickname" type="text" placeholder="비워두면 ADMIN">
+                </label>
+                <label class="admin-field">
+                  <span>공지 제목</span>
+                  <input id="lobbyNoticeTitle" type="text" placeholder="선택 입력">
+                </label>
+                <label class="admin-field admin-field--wide">
+                  <span>공지 본문</span>
+                  <textarea id="lobbyNoticeBody" rows="4" placeholder="로비 공지 본문을 입력하세요."></textarea>
+                </label>
+                <details class="admin-advanced admin-field--wide">
+                  <summary>고급 설정</summary>
+                  <div class="admin-form-grid admin-form-grid--single">
+                    <label class="admin-field">
+                      <span>공지 ID</span>
+                      <input id="lobbyNoticeMessageId" type="text" placeholder="비워두면 자동 생성">
+                    </label>
+                  </div>
+                  <p class="admin-inline-status">같은 ID가 이미 있으면 공지가 전송되지 않습니다.</p>
+                </details>
+                <div class="admin-button-row admin-field--wide">
+                  <button id="lobbyNoticeApplyButton" type="button" class="refresh-button">로비 공지 보내기</button>
+                </div>
+              </form>
+              <p id="lobbyNoticeStatus" class="admin-inline-status"></p>
+              <div class="message-preview-card">
+                <p class="message-preview-label">로비 미리보기</p>
+                <p id="lobbyNoticePreviewMeta" class="message-preview-meta">로비 채팅에 관리자 전용 공지 버블로 표시됩니다.</p>
+                <div class="message-preview-frame message-preview-frame--notice">
+                  <span class="message-preview-pill">운영 공지</span>
+                  <strong id="lobbyNoticePreviewTitle" class="message-preview-title">선택 입력 제목</strong>
+                  <p id="lobbyNoticePreviewBody" class="message-preview-body">본문을 입력하면 로비에서 보이는 공지 형태를 여기서 확인할 수 있습니다.</p>
+                </div>
+              </div>
             </section>
           </div>
           <p id="playerActionStatus" class="admin-inline-status"></p>

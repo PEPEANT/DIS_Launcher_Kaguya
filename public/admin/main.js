@@ -1,6 +1,6 @@
-import { getApp, getApps, initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+﻿import { getApp, getApps, initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
 import { collection, doc, getDoc, getDocs, getFirestore, orderBy, query, where } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
-import { getCurrentAuthIdToken, initAuth } from "../game/auth.js";
+import { getCurrentAuthIdToken, initAuth } from "../game/shared/auth/auth-service.js";
 import {
   getAdminAccessConfig,
   getAvailableRankingSeasons,
@@ -78,6 +78,15 @@ const elements = {
   sendMessagePreviewTitle: document.getElementById("sendMessagePreviewTitle"),
   sendMessagePreviewBody: document.getElementById("sendMessagePreviewBody"),
   sendMessageApplyButton: document.getElementById("sendMessageApplyButton"),
+  lobbyNoticeNickname: document.getElementById("lobbyNoticeNickname"),
+  lobbyNoticeTitle: document.getElementById("lobbyNoticeTitle"),
+  lobbyNoticeBody: document.getElementById("lobbyNoticeBody"),
+  lobbyNoticeMessageId: document.getElementById("lobbyNoticeMessageId"),
+  lobbyNoticePreviewMeta: document.getElementById("lobbyNoticePreviewMeta"),
+  lobbyNoticePreviewTitle: document.getElementById("lobbyNoticePreviewTitle"),
+  lobbyNoticePreviewBody: document.getElementById("lobbyNoticePreviewBody"),
+  lobbyNoticeApplyButton: document.getElementById("lobbyNoticeApplyButton"),
+  lobbyNoticeStatus: document.getElementById("lobbyNoticeStatus"),
   deleteMessageId: document.getElementById("deleteMessageId"),
   deleteMessageApplyButton: document.getElementById("deleteMessageApplyButton"),
   playerActionStatus: document.getElementById("playerActionStatus")
@@ -413,11 +422,12 @@ function formatAgo(value) {
 function buildWalletAdjustDraft(delta, reason) {
   const safeDelta = Math.floor(Number(delta) || 0);
   const absoluteDelta = Math.abs(safeDelta);
-  const actionLabel = safeDelta > 0 ? "지급" : "차감";
+  const actionLabel = safeDelta > 0 ? "운영 지급" : "운영 차감";
+  const title = safeDelta > 0 ? "운영 후쥬 지급 안내" : "운영 후쥬 보정 안내";
   const safeReason = formatText(reason, "");
 
   return {
-    title: "후쥬페이 변동 안내",
+    title,
     body: [
       `관리자가 ${formatNumber(absoluteDelta)} HujuPay를 ${actionLabel}했습니다.`,
       safeReason ? `사유: ${safeReason}` : ""
@@ -442,8 +452,8 @@ function renderWalletAdjustPreview() {
 
   elements.walletAdjustPreviewMeta.textContent = delta
     ? `대상: ${targetLabel} / ${delta > 0 ? "+" : ""}${formatNumber(delta)} HujuPay / 메시지 ID 자동 생성`
-    : `대상: ${targetLabel} / 금액을 입력하면 지급 또는 차감 문구가 완성됩니다.`;
-  elements.walletAdjustPreviewTitle.textContent = title || "후쥬페이 변동 안내";
+    : `대상: ${targetLabel} / 금액을 입력하면 운영 지급 또는 보정 문구가 완성됩니다.`;
+  elements.walletAdjustPreviewTitle.textContent = title || "운영 후쥬 지급 안내";
   elements.walletAdjustPreviewBody.textContent = body || "금액과 사유를 입력하면 실제 발송 문구가 여기 표시됩니다.";
 }
 
@@ -465,9 +475,25 @@ function renderSendMessagePreview() {
   elements.sendMessagePreviewBody.textContent = body || "본문을 입력하면 여기서 실제 발송 메시지를 바로 확인할 수 있습니다.";
 }
 
+function renderLobbyNoticePreview() {
+  if (!elements.lobbyNoticePreviewMeta || !elements.lobbyNoticePreviewTitle || !elements.lobbyNoticePreviewBody) {
+    return;
+  }
+
+  const nickname = readTrimmedValue(elements.lobbyNoticeNickname) || "ADMIN";
+  const title = readTrimmedValue(elements.lobbyNoticeTitle);
+  const body = readTrimmedValue(elements.lobbyNoticeBody);
+  const messageId = readTrimmedValue(elements.lobbyNoticeMessageId);
+
+  elements.lobbyNoticePreviewMeta.textContent = `발신자 ${nickname} / 공지 ID ${messageId || "자동 생성"}`;
+  elements.lobbyNoticePreviewTitle.textContent = title || "선택 입력 제목";
+  elements.lobbyNoticePreviewBody.textContent = body || "본문을 입력하면 로비 채팅에 표시될 운영 공지를 여기서 확인할 수 있습니다.";
+}
+
 function renderManualMessagePreviews() {
   renderWalletAdjustPreview();
   renderSendMessagePreview();
+  renderLobbyNoticePreview();
 }
 
 function compareRankings(left, right) {
@@ -1311,6 +1337,12 @@ function applyAnalyticsFailure() {
   elements.trendChartStatus.textContent = "불러오기 실패";
 }
 
+function isPermissionDeniedError(error) {
+  const code = String(error?.code || "").trim();
+  const message = String(error?.message || "");
+  return code === "permission-denied" || /insufficient permissions/i.test(message);
+}
+
 async function fetchAllRankings() {
   const rankingQuery = query(collection(getDb(), CURRENT_RANKING_COLLECTION), orderBy("score", "desc"));
   const snapshot = await getDocs(rankingQuery);
@@ -1419,6 +1451,17 @@ function bindManualTargetControls() {
       renderSendMessagePreview();
     });
   });
+
+  [
+    elements.lobbyNoticeNickname,
+    elements.lobbyNoticeTitle,
+    elements.lobbyNoticeBody,
+    elements.lobbyNoticeMessageId
+  ].forEach((element) => {
+    element?.addEventListener("input", () => {
+      renderLobbyNoticePreview();
+    });
+  });
 }
 
 async function handleSeasonPayoutAction({ apply }) {
@@ -1432,7 +1475,7 @@ async function handleSeasonPayoutAction({ apply }) {
     throw new Error("강제 대상 UID를 쓰려면 플레이어 ID 필터가 필요합니다.");
   }
 
-  setInlineStatus(elements.seasonPayoutStatus, apply ? "보상을 지급하는 중..." : "보상 미리보기를 불러오는 중...");
+  setInlineStatus(elements.seasonPayoutStatus, apply ? "레거시 정산 지급을 처리하는 중..." : "레거시 정산 미리보기를 불러오는 중...");
   setResultBox(elements.seasonPayoutResult, "처리 중...");
 
   const result = await runAdminActionRequest(apply ? "season-payout-apply" : "season-payout-preview", {
@@ -1446,8 +1489,8 @@ async function handleSeasonPayoutAction({ apply }) {
   setInlineStatus(
     elements.seasonPayoutStatus,
     apply
-      ? `${formatText(seasonLabel)} 보상 지급 완료. ${formatNumber(result.processedEntries)}명 처리됨.`
-      : `${formatText(seasonLabel)} 보상 미리보기 완료. ${formatNumber(result.eligibleEntries)}명 대상.`,
+      ? `${formatText(seasonLabel)} 레거시 정산 지급 완료. ${formatNumber(result.processedEntries)}명 처리됨.`
+      : `${formatText(seasonLabel)} 레거시 정산 미리보기 완료. ${formatNumber(result.eligibleEntries)}명 대상.`,
     "success"
   );
   setResultBox(elements.seasonPayoutResult, result);
@@ -1473,9 +1516,9 @@ async function handleWalletAdjustAction() {
     throw new Error("사유를 입력해주세요.");
   }
 
-  setInlineStatus(elements.playerActionStatus, "후쥬 잔액을 조정하는 중...");
+  setInlineStatus(elements.playerActionStatus, "운영 후쥬 지급/보정을 적용하는 중...");
 
-  await runAdminActionRequest("adjust-wallet", {
+  await runAdminActionRequest("grant-wallet", {
     uid,
     delta,
     reason,
@@ -1486,7 +1529,7 @@ async function handleWalletAdjustAction() {
     seasonLabel: "관리자"
   });
 
-  setInlineStatus(elements.playerActionStatus, `${uid} 후쥬 잔액 조정 완료.`, "success");
+  setInlineStatus(elements.playerActionStatus, `${uid} 운영 후쥬 지급/보정 적용 완료.`, "success");
 }
 
 async function handleSendMessageAction() {
@@ -1515,6 +1558,29 @@ async function handleSendMessageAction() {
   setInlineStatus(elements.playerActionStatus, `${uid}에게 메시지 전송 완료.`, "success");
 }
 
+async function handleSendLobbyNoticeAction() {
+  const messageId = readTrimmedValue(elements.lobbyNoticeMessageId);
+  const nickname = readTrimmedValue(elements.lobbyNoticeNickname);
+  const title = readTrimmedValue(elements.lobbyNoticeTitle);
+  const body = readTrimmedValue(elements.lobbyNoticeBody);
+
+  if (!body) {
+    throw new Error("로비 공지 본문을 입력해주세요.");
+  }
+
+  setInlineStatus(elements.lobbyNoticeStatus, "로비 공지를 보내는 중...");
+
+  await runAdminActionRequest("send-lobby-notice", {
+    messageId,
+    nickname,
+    title,
+    body,
+    apply: true
+  });
+
+  setInlineStatus(elements.lobbyNoticeStatus, `로비 공지 ${messageId || "(자동 ID)"} 전송 완료.`, "success");
+}
+
 async function handleDeleteMessageAction() {
   const uid = getRequiredManualTargetValue();
   const messageId = readTrimmedValue(elements.deleteMessageId);
@@ -1540,14 +1606,14 @@ function bindAdminOperationControls() {
       await handleSeasonPayoutAction({ apply: false });
     } catch (error) {
       console.error(error);
-      setInlineStatus(elements.seasonPayoutStatus, formatText(error?.message, "보상 미리보기에 실패했습니다."), "error");
-      setResultBox(elements.seasonPayoutResult, formatText(error?.message, "보상 미리보기에 실패했습니다."));
+      setInlineStatus(elements.seasonPayoutStatus, formatText(error?.message, "레거시 정산 미리보기에 실패했습니다."), "error");
+      setResultBox(elements.seasonPayoutResult, formatText(error?.message, "레거시 정산 미리보기에 실패했습니다."));
     }
   });
 
   elements.seasonPayoutApplyButton?.addEventListener("click", async () => {
     const seasonLabel = getSelectedPayoutSeasonLabel();
-    if (!window.confirm(`${seasonLabel} 보상을 실제 지급합니다. 잔액과 메시지함이 함께 갱신됩니다. 계속할까요?`)) {
+    if (!window.confirm(`${seasonLabel} 레거시 정산을 실제 지급합니다. 잔액과 메시지함이 함께 갱신됩니다. 계속할까요?`)) {
       return;
     }
 
@@ -1555,8 +1621,8 @@ function bindAdminOperationControls() {
       await handleSeasonPayoutAction({ apply: true });
     } catch (error) {
       console.error(error);
-      setInlineStatus(elements.seasonPayoutStatus, formatText(error?.message, "보상 지급에 실패했습니다."), "error");
-      setResultBox(elements.seasonPayoutResult, formatText(error?.message, "보상 지급에 실패했습니다."));
+      setInlineStatus(elements.seasonPayoutStatus, formatText(error?.message, "레거시 정산 지급에 실패했습니다."), "error");
+      setResultBox(elements.seasonPayoutResult, formatText(error?.message, "레거시 정산 지급에 실패했습니다."));
     }
   });
 
@@ -1565,7 +1631,7 @@ function bindAdminOperationControls() {
       await handleWalletAdjustAction();
     } catch (error) {
       console.error(error);
-      setInlineStatus(elements.playerActionStatus, formatText(error?.message, "후쥬 잔액 조정에 실패했습니다."), "error");
+      setInlineStatus(elements.playerActionStatus, formatText(error?.message, "운영 후쥬 지급/보정 적용에 실패했습니다."), "error");
     }
   });
 
@@ -1575,6 +1641,15 @@ function bindAdminOperationControls() {
     } catch (error) {
       console.error(error);
       setInlineStatus(elements.playerActionStatus, formatText(error?.message, "메시지 전송에 실패했습니다."), "error");
+    }
+  });
+
+  elements.lobbyNoticeApplyButton?.addEventListener("click", async () => {
+    try {
+      await handleSendLobbyNoticeAction();
+    } catch (error) {
+      console.error(error);
+      setInlineStatus(elements.lobbyNoticeStatus, formatText(error?.message, "로비 공지 전송에 실패했습니다."), "error");
     }
   });
 
@@ -1625,18 +1700,26 @@ async function refreshAdminData() {
     elements.activeCount.textContent = formatNumber(activeEntries.length);
     elements.presenceStatus.textContent = activeEntries.length ? "실시간 접속 추정치" : "현재 접속 없음";
   } else {
-    console.error(presenceResult.reason);
     adminState.activePresence = [];
     applyPresenceFailure();
+    if (isPermissionDeniedError(presenceResult.reason)) {
+      elements.presenceStatus.textContent = "관리자 계정으로 로그인하면 실시간 접속 현황을 볼 수 있습니다.";
+    } else {
+      console.error(presenceResult.reason);
+    }
   }
 
   if (sessionsResult.status === "fulfilled") {
     adminState.recentSessions = sessionsResult.value;
     renderAnalytics(sessionsResult.value);
   } else {
-    console.error(sessionsResult.reason);
     adminState.recentSessions = [];
     applyAnalyticsFailure();
+    if (isPermissionDeniedError(sessionsResult.reason)) {
+      elements.trendChartStatus.textContent = "관리자 계정으로 로그인하면 방문자 추이를 볼 수 있습니다.";
+    } else {
+      console.error(sessionsResult.reason);
+    }
   }
 
   elements.lastUpdated.textContent = formatDateTime(new Date().toISOString());
@@ -1676,3 +1759,4 @@ async function bootstrapAdminDashboard() {
 }
 
 void bootstrapAdminDashboard();
+
