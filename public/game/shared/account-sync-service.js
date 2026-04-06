@@ -1,3 +1,5 @@
+import { getRankingSeasonConfig, isRankingClosed } from "../config/runtime.js";
+
 export function createAccountSyncService({
   currentSeason,
   profileSeason,
@@ -25,6 +27,10 @@ export function createAccountSyncService({
 
   async function syncRankingNicknameForSeason({ season, user, nickname, linkedPlayerIds }) {
     if (!user?.uid || !nickname || !linkedPlayerIds.length) {
+      return { updated: false, rankings: null };
+    }
+
+    if (isRankingClosed() || getRankingSeasonConfig(season).status !== "current") {
       return { updated: false, rankings: null };
     }
 

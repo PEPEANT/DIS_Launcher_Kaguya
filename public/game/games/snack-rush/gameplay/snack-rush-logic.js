@@ -4,7 +4,7 @@ import { playBossPrepMusic, playItemSoundEffect } from "../../../core/audio.js";
 import { FINAL_BOSS_PREP_CONFIG } from "../../../config/final-boss-prep.js";
 import { ITEM_TYPES } from "../../../config/items.js";
 import { BACKGROUND_SCORE_STAGES, ROUND_DEFINITIONS } from "../../../config/progression.js";
-import { isPlaytestMode } from "../../../config/runtime.js";
+import { getRankingClosureNotice, isPlaytestMode, isRankingClosed } from "../../../config/runtime.js";
 import { t } from "../../../core/i18n.js";
 import { fetchRankingsFromProvider, submitScoreToProvider } from "../../../shared/ranking-core/ranking-service.js";
 import { hideSnackRushResult, showSnackRushResult } from "../result/snack-rush-result-presenter.js";
@@ -760,6 +760,10 @@ function applyItemEffect(item) {
 }
 
 function getResultNoticeText() {
+  if (isRankingClosed()) {
+    return t("result.rankingClosed");
+  }
+
   if (state.lastRank === 1 && state.isNewBest) {
     return t("result.newBestTop");
   }
@@ -806,6 +810,13 @@ async function submitScore() {
     return;
   }
 
+  if (isRankingClosed()) {
+    state.lastRank = null;
+    state.isNewBest = false;
+    setRankingStatus(getRankingClosureNotice());
+    return;
+  }
+
   const payload = await submitScoreToProvider({
     playerId: state.playerId,
     uid: state.authUser?.uid || "",
@@ -841,7 +852,7 @@ export async function fetchRankings({ background = false } = {}) {
     state.rankings = Array.isArray(payload.rankings) ? payload.rankings : [];
     renderRankingList(state.rankings);
     if (!background) {
-      setRankingStatus(state.rankings.length ? t("ranking.best") : t("ranking.empty"));
+      setRankingStatus(isRankingClosed() ? getRankingClosureNotice() : (state.rankings.length ? t("ranking.best") : t("ranking.empty")));
     }
   } catch {
     if (!background) {

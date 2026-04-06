@@ -23,25 +23,39 @@ export function createSnackRushRankingController({
     expanded: false
   };
 
+  function isEndedRankingSeason(season) {
+    return getRankingSeasonConfig(season).status !== "current";
+  }
+
+  function getAllRankingsTitleForSeason(season) {
+    return season === currentSeason
+      ? t("ranking.currentFullTitle")
+      : t("ranking.previousSeasonTitle");
+  }
+
   function renderActiveAllRankings() {
     const { season, rankings, expanded } = allRankingsModalState;
-    const shouldShowAll = season === currentSeason || expanded;
+    const seasonConfig = getRankingSeasonConfig(season);
+    const seasonEnded = isEndedRankingSeason(season);
+    const shouldShowAll = !seasonEnded || expanded;
     const visibleRankings = shouldShowAll ? rankings : rankings.slice(0, allRankingsPreviewCount);
 
     if (elements.allRankingsTitle) {
-      elements.allRankingsTitle.textContent = season === 1
-        ? t("ranking.previousSeasonTitle")
-        : t("ranking.currentFullTitle");
+      elements.allRankingsTitle.textContent = getAllRankingsTitleForSeason(season);
     }
 
-    if (season === 1) {
-      renderSeason1Archive(visibleRankings, getRankingSeasonConfig(1).period || t("ranking.season1ArchivePeriod"));
+    if (seasonEnded) {
+      renderAllRankingsList(visibleRankings, {
+        archived: true,
+        archivedTitle: getAllRankingsTitleForSeason(season),
+        period: seasonConfig.period || t("ranking.season1ArchivePeriod")
+      });
     } else {
       renderAllRankingsList(visibleRankings);
     }
 
     setAllRankingsToggle({
-      visible: season !== currentSeason && rankings.length > allRankingsPreviewCount,
+      visible: seasonEnded && rankings.length > allRankingsPreviewCount,
       expanded
     });
   }
@@ -73,9 +87,7 @@ export function createSnackRushRankingController({
       elements.allRankingsStatus.hidden = false;
     }
     if (elements.allRankingsTitle) {
-      elements.allRankingsTitle.textContent = season === 1
-        ? t("ranking.previousSeasonTitle")
-        : t("ranking.currentFullTitle");
+      elements.allRankingsTitle.textContent = getAllRankingsTitleForSeason(season);
     }
     setAllRankingsToggle({ visible: false, expanded: false });
 
@@ -83,7 +95,7 @@ export function createSnackRushRankingController({
       const { rankings } = await fetchAllRankings({ season });
       allRankingsModalState.season = season;
       allRankingsModalState.rankings = rankings;
-      allRankingsModalState.expanded = season === currentSeason;
+      allRankingsModalState.expanded = !isEndedRankingSeason(season);
       renderActiveAllRankings();
     } catch {
       setAllRankingsStatus(t("ranking.failed"));

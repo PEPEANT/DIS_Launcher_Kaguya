@@ -1,3 +1,5 @@
+import { getRankingClosureNotice, isRankingClosed } from "../../../config/runtime.js";
+
 export function createLauncherRankingSync({
   accountSyncService,
   renderRankingList,
@@ -16,7 +18,11 @@ export function createLauncherRankingSync({
     if (Array.isArray(syncResult.currentSeasonRankings)) {
       state.rankings = syncResult.currentSeasonRankings;
       renderRankingList(state.rankings);
-      setRankingStatus(state.rankings.length ? t("ranking.best") : t("ranking.empty"));
+      setRankingStatus(
+        isRankingClosed()
+          ? getRankingClosureNotice()
+          : (state.rankings.length ? t("ranking.best") : t("ranking.empty"))
+      );
     }
 
     return Boolean(syncResult.updated);

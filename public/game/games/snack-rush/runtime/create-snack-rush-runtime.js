@@ -1,3 +1,4 @@
+import { getRankingClosureNotice, isRankingClosed } from "../../../config/runtime.js";
 import { createSnackRushEntryController } from "../entry/snack-rush-entry-controller.js";
 import { createSnackRushRankingController } from "../ranking/snack-rush-ranking-controller.js";
 import { createSnackRushSessionController } from "../gameplay/snack-rush-session-controller.js";
@@ -82,6 +83,8 @@ export function createSnackRushRuntime({
 
       if (entry.isPlaytestActive()) {
         setRankingStatus("Playtest mode: rankings are disabled.");
+      } else if (isRankingClosed()) {
+        setRankingStatus(getRankingClosureNotice());
       } else {
         setRankingStatus(state.rankings.length ? t("ranking.best") : t("ranking.empty"));
       }

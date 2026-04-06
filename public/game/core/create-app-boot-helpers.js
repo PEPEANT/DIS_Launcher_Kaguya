@@ -1,3 +1,5 @@
+import { getRankingClosureNotice, isRankingClosed } from "../config/runtime.js";
+
 export function createAppBootHelpers({
   animate,
   applyNickname,
@@ -69,6 +71,16 @@ export function createAppBootHelpers({
     });
   }
 
+  function syncServiceNotice() {
+    if (!elements.serviceNotice) {
+      return;
+    }
+
+    const notice = getRankingClosureNotice();
+    elements.serviceNotice.textContent = notice;
+    elements.serviceNotice.hidden = !notice;
+  }
+
   function bootLauncher() {
     launcherApiGetter()?.updateAuthUi?.();
     launcherApiGetter()?.syncMobileNavigationState?.();
@@ -100,6 +112,7 @@ export function createAppBootHelpers({
     initI18n();
     primeIntroBackgroundAssets();
     syncIntroBackground();
+    syncServiceNotice();
     state.playerId = getOrCreatePlayerId();
     clearSavedNickname();
     applyNickname(getGuestNickname());
@@ -126,6 +139,7 @@ export function createAppBootHelpers({
 
   function syncSharedLanguageState({ authModalState, renderMessagesFallback }) {
     syncIntroBackground();
+    syncServiceNotice();
 
     if (!state.authUser) {
       applyNickname(getGuestNickname());
@@ -182,7 +196,9 @@ export function createAppBootHelpers({
       setRankingStatus(t("ranking.failed"));
     }
 
-    startRankingPolling();
+    if (!isRankingClosed()) {
+      startRankingPolling();
+    }
   }
 
   function finalizeSnackRushBootReady() {

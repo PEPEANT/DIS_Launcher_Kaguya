@@ -202,6 +202,18 @@ img {
   color: var(--accent-deep);
 }
 
+.service-notice {
+  margin: 0;
+  padding: 0.85rem 1rem;
+  border-radius: 1rem;
+  background: rgba(255, 248, 240, 0.88);
+  border: 1px solid rgba(150, 104, 67, 0.18);
+  color: var(--text-main);
+  font-size: 0.84rem;
+  line-height: 1.6;
+  text-align: center;
+}
+
 .intro-nickname-status {
   min-height: 1.3rem;
   margin: -0.3rem 0 0;
@@ -2520,6 +2532,11 @@ img {
 .season-badge--current {
   background: linear-gradient(135deg, var(--accent), #ffb65e);
   color: #fff;
+}
+
+.season-badge--ended {
+  background: rgba(0, 0, 0, 0.08);
+  color: var(--text-soft);
 }
 
 /* ── 전체 랭킹 모달 ── */
